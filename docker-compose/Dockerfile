@@ -1,5 +1,5 @@
 # Docker Compose template - extends base with Bun runtime
-FROM git.noel.sh/codespacesh/base:latest
+FROM ghcr.io/codespacesh/base:latest
 
 USER root
 

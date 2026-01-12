@@ -35,12 +35,6 @@ if [ -n "${DOCKERHUB_USERNAME}" ] && [ -n "${DOCKERHUB_TOKEN}" ]; then
   echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin
 fi
 
-# Configure Gitea registry authentication
-if [ -n "${GITEA_TOKEN}" ]; then
-  echo "Configuring Gitea registry authentication..."
-  echo "${GITEA_TOKEN}" | docker login git.noel.sh -u ci --password-stdin
-fi
-
 docker system prune -f --volumes || true
 
 echo "Docker setup complete"

@@ -28,11 +28,6 @@ variable "git_repo" {
   description = "Git repository URL"
 }
 
-variable "git_org" {
-  type        = string
-  description = "Git organization for registry auth"
-}
-
 variable "services" {
   type = map(object({
     port        = number
@@ -53,12 +48,6 @@ variable "install_command" {
   type        = string
   description = "Package manager install command"
   default     = "bun install"
-}
-
-variable "gitea_token" {
-  type        = string
-  sensitive   = true
-  default     = ""
 }
 
 variable "claude_code_oauth_token" {
@@ -84,11 +73,7 @@ variable "dockerhub_token" {
 # =============================================================================
 
 provider "docker" {
-  registry_auth {
-    address  = "git.noel.sh"
-    username = "ci"
-    password = var.gitea_token
-  }
+  # ghcr.io images are public, no auth needed
 }
 
 provider "coder" {}
@@ -116,7 +101,7 @@ data "coder_parameter" "git_repo" {
 data "coder_parameter" "issue_number" {
   name         = "issue_number"
   display_name = "Issue Number"
-  description  = "Gitea issue number (optional)"
+  description  = "GitHub issue number (optional)"
   default      = ""
   type         = "string"
   mutable      = true
@@ -167,7 +152,7 @@ resource "docker_volume" "workspace" {
 }
 
 resource "docker_image" "workspace" {
-  name          = "git.noel.sh/codespacesh/docker-compose:latest"
+  name          = "ghcr.io/codespacesh/docker-compose:latest"
   pull_triggers = [timestamp()]
   keep_locally  = false
   force_remove  = true
@@ -184,7 +169,6 @@ resource "docker_container" "workspace" {
 
   env = [
     "CODER_AGENT_TOKEN=${coder_agent.main.token}",
-    "GITEA_TOKEN=${var.gitea_token}",
     "CLAUDE_CODE_OAUTH_TOKEN=${var.claude_code_oauth_token}",
     "DOCKERHUB_USERNAME=${var.dockerhub_username}",
     "DOCKERHUB_TOKEN=${var.dockerhub_token}",
@@ -249,7 +233,6 @@ resource "coder_agent" "main" {
       curl -L https://coder.com/install.sh | sh
     fi
 
-    export GITEA_TOKEN="${var.gitea_token}"
     export DOCKERHUB_USERNAME="${var.dockerhub_username}"
     export DOCKERHUB_TOKEN="${var.dockerhub_token}"
     export PROJECT_NAME="${var.project_name}"
@@ -263,11 +246,7 @@ resource "coder_agent" "main" {
     cd /home/coder
     if [ ! -d "/home/coder/${var.project_name}/.git" ]; then
       rm -rf "/home/coder/${var.project_name}"
-      if [ -n "${var.gitea_token}" ]; then
-        git clone "https://ci:${var.gitea_token}@git.noel.sh/${var.git_org}/${var.project_name}.git" "${var.project_name}"
-      else
-        git clone "${var.git_repo}" "${var.project_name}"
-      fi
+      git clone "${var.git_repo}" "${var.project_name}"
     fi
 
     cd "/home/coder/${var.project_name}"
