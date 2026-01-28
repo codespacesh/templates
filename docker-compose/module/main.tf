@@ -51,20 +51,26 @@ variable "install_command" {
 }
 
 variable "claude_code_oauth_token" {
-  type        = string
-  sensitive   = true
-  default     = ""
+  type      = string
+  sensitive = true
+  default   = ""
 }
 
 variable "dockerhub_username" {
-  type        = string
-  sensitive   = true
-  default     = ""
+  type      = string
+  sensitive = true
+  default   = ""
 }
 
 variable "dockerhub_token" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "git_setup_hook" {
   type        = string
-  sensitive   = true
+  description = "Path to git setup script (runs before clone, for auth configuration)"
   default     = ""
 }
 
@@ -244,6 +250,13 @@ resource "coder_agent" "main" {
     /opt/coder-scripts/start-vnc.sh
 
     cd /home/coder
+
+    # Run git setup hook if provided (for auth configuration)
+    if [ -n "${var.git_setup_hook}" ]; then
+      echo "Running git setup hook..."
+      curl -fsSL "${var.git_setup_hook}" | bash
+    fi
+
     if [ ! -d "/home/coder/${var.project_name}/.git" ]; then
       rm -rf "/home/coder/${var.project_name}"
       git clone "${var.git_repo}" "${var.project_name}"
