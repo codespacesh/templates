@@ -1,5 +1,5 @@
-# Docker Compose template - extends base with Bun runtime
-FROM ghcr.io/codespacesh/base:latest
+# Docker Compose template - extends dind with Bun runtime
+FROM ghcr.io/codespacesh/dind:latest
 
 USER root
 
