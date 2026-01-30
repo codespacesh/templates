@@ -75,6 +75,13 @@ variable "git_setup_hook" {
   default     = ""
 }
 
+variable "extra_env" {
+  type        = map(string)
+  description = "Additional environment variables to pass to the container"
+  default     = {}
+  sensitive   = true
+}
+
 # =============================================================================
 # PROVIDERS
 # =============================================================================
@@ -172,7 +179,7 @@ resource "docker_container" "workspace" {
   stop_timeout = 300
   stop_signal  = "SIGKILL"
 
-  env = [
+  env = concat([
     "CODER_AGENT_TOKEN=${coder_agent.main.token}",
     "CLAUDE_CODE_OAUTH_TOKEN=${var.claude_code_oauth_token}",
     "DOCKERHUB_USERNAME=${var.dockerhub_username}",
@@ -181,7 +188,7 @@ resource "docker_container" "workspace" {
     "GIT_REPO=${var.git_repo}",
     "INSTALL_COMMAND=${var.install_command}",
     "STARTUP_HOOK=${var.startup_hook}"
-  ]
+  ], [for k, v in var.extra_env : "${k}=${v}"])
 
   volumes {
     volume_name    = docker_volume.workspace.name
