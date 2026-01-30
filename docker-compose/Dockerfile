@@ -19,10 +19,11 @@ COPY docker-compose/scripts /opt/coder-scripts/
 RUN chmod +x /opt/coder-scripts/*.sh 2>/dev/null || true
 
 USER coder
+ENV HOME="/home/coder"
+ENV BUN_INSTALL="/home/coder/.bun"
 
 # Install Bun for coder user
 RUN curl -fsSL https://bun.sh/install | bash
-ENV BUN_INSTALL="/home/coder/.bun"
 ENV PATH="/home/coder/.bun/bin:/home/coder/.local/bin:$PATH"
 
 LABEL org.opencontainers.image.description="Docker Compose Coder Workspace with Bun"
