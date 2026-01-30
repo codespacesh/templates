@@ -13,10 +13,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
 COPY moltbot/scripts /opt/coder-scripts/
 RUN chmod +x /opt/coder-scripts/*.sh
 
-USER coder
-
-# Install Moltbot globally
+# Install Moltbot globally (needs root for /usr/lib/node_modules)
 RUN npm install -g moltbot@latest
+
+USER coder
 
 LABEL org.opencontainers.image.source="https://github.com/codespacesh/templates"
 LABEL org.opencontainers.image.description="Moltbot Coder Workspace"
