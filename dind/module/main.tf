@@ -71,7 +71,7 @@ variable "dockerhub_token" {
 
 variable "git_setup_hook" {
   type        = string
-  description = "Path to git setup script (runs before clone, for auth configuration)"
+  description = "Inline script content to run before git clone (for auth configuration)"
   default     = ""
 }
 
@@ -260,7 +260,7 @@ resource "coder_agent" "main" {
     # Run git setup hook if provided (for auth configuration)
     if [ -n "${var.git_setup_hook}" ]; then
       echo "Running git setup hook..."
-      curl -fsSL "${var.git_setup_hook}" | bash
+      ${var.git_setup_hook}
     fi
 
     if [ ! -d "/home/coder/${var.project_name}/.git" ]; then
