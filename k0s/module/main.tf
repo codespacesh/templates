@@ -1,6 +1,6 @@
 # k0s Coder Template Module
 # Single-node Kubernetes cluster for development and CI/CD testing
-# Uses the k0s image (extends dind with k0s, kubectl, helm, k9s)
+# Uses Kubernetes with sysbox-runc (k0s runs inside the pod)
 
 terraform {
   required_providers {
@@ -8,16 +8,26 @@ terraform {
       source  = "coder/coder"
       version = "~> 2.0"
     }
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 3.0"
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.16.0"
     }
   }
+}
+
+# Use in-cluster config when Coder runs as a pod
+provider "kubernetes" {
+  # Automatically uses in-cluster config
 }
 
 # =============================================================================
 # VARIABLES - Passed from consuming project
 # =============================================================================
+
+variable "namespace" {
+  type        = string
+  description = "Kubernetes namespace for workspaces (inherited from tenant provisioning)"
+}
 
 variable "project_name" {
   type        = string
@@ -109,6 +119,67 @@ data "coder_parameter" "git_repo" {
   mutable      = false
 }
 
+data "coder_parameter" "cpu" {
+  name         = "cpu"
+  display_name = "CPU Cores"
+  description  = "Number of CPU cores for your workspace"
+  default      = "4"
+  mutable      = true
+  option {
+    name  = "2 Cores (Light)"
+    value = "2"
+  }
+  option {
+    name  = "4 Cores (Standard)"
+    value = "4"
+  }
+  option {
+    name  = "8 Cores (Heavy)"
+    value = "8"
+  }
+  option {
+    name  = "16 Cores (Intensive)"
+    value = "16"
+  }
+}
+
+data "coder_parameter" "memory" {
+  name         = "memory"
+  display_name = "Memory (GB)"
+  description  = "RAM for your workspace"
+  default      = "8"
+  mutable      = true
+  option {
+    name  = "4 GB"
+    value = "4"
+  }
+  option {
+    name  = "8 GB"
+    value = "8"
+  }
+  option {
+    name  = "16 GB"
+    value = "16"
+  }
+  option {
+    name  = "32 GB"
+    value = "32"
+  }
+}
+
+data "coder_parameter" "disk_size" {
+  name         = "disk_size"
+  display_name = "Disk Size (GB)"
+  description  = "Storage for home directory, Docker images, and Kubernetes data"
+  default      = "100"
+  type         = "number"
+  mutable      = false
+  validation {
+    min = 50
+    max = 500
+  }
+}
+
 data "coder_parameter" "issue_number" {
   name         = "issue_number"
   display_name = "Issue Number"
@@ -149,63 +220,6 @@ data "coder_parameter" "ai_prompt" {
   default      = data.coder_parameter.issue_number.value != "" ? "You are working on Issue #${data.coder_parameter.issue_number.value}: ${data.coder_parameter.issue_title.value}\n\nRequirements:\n${data.coder_parameter.issue_body.value}\n\nBranch: ${data.coder_parameter.issue_branch.value}" : "You are a helpful AI assistant for development."
   type         = "string"
   mutable      = true
-}
-
-# =============================================================================
-# DOCKER RESOURCES
-# =============================================================================
-
-resource "docker_volume" "workspace" {
-  name = "coder-${data.coder_workspace.me.id}"
-  lifecycle {
-    ignore_changes = all
-  }
-}
-
-resource "docker_image" "workspace" {
-  name          = "ghcr.io/codespacesh/k0s:latest"
-  pull_triggers = [timestamp()]
-  keep_locally  = false
-  force_remove  = true
-}
-
-resource "docker_container" "workspace" {
-  count        = data.coder_workspace.me.start_count
-  image        = docker_image.workspace.repo_digest
-  name         = "coder-${data.coder_workspace_owner.me.name}-${lower(data.coder_workspace.me.name)}"
-  hostname     = data.coder_workspace.me.name
-  runtime      = "sysbox-runc"
-  stop_timeout = 300
-  stop_signal  = "SIGKILL"
-
-  env = concat([
-    "CODER_AGENT_TOKEN=${coder_agent.main.token}",
-    "CLAUDE_CODE_OAUTH_TOKEN=${var.claude_code_oauth_token}",
-    "DOCKERHUB_USERNAME=${var.dockerhub_username}",
-    "DOCKERHUB_TOKEN=${var.dockerhub_token}",
-    "PROJECT_NAME=${var.project_name}",
-    "GIT_REPO=${var.git_repo}",
-    "INSTALL_COMMAND=${var.install_command}",
-    "STARTUP_HOOK=${var.startup_hook}",
-    "K0S_VERSION=${var.k0s_version}"
-  ], [for k, v in var.extra_env : "${k}=${v}"])
-
-  volumes {
-    volume_name    = docker_volume.workspace.name
-    container_path = "/home/coder"
-  }
-
-  command = ["sh", "-c", coder_agent.main.init_script]
-
-  remove_volumes = true
-  must_run       = false
-  attach         = false
-  logs           = false
-  rm             = true
-
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 # =============================================================================
@@ -308,6 +322,42 @@ resource "coder_agent" "main" {
 }
 
 # =============================================================================
+# KUBERNETES WORKSPACE (shared module)
+# =============================================================================
+
+module "workspace" {
+  source = "../../modules/kubernetes-workspace"
+
+  namespace         = var.namespace
+  workspace_id      = data.coder_workspace.me.id
+  workspace_name    = data.coder_workspace.me.name
+  owner_name        = data.coder_workspace_owner.me.name
+  agent_token       = coder_agent.main.token
+  agent_init_script = coder_agent.main.init_script
+  start_count       = data.coder_workspace.me.start_count
+
+  image             = "ghcr.io/codespacesh/k0s:latest"
+  image_pull_policy = "Always"
+
+  cpu_cores    = data.coder_parameter.cpu.value
+  memory_gb    = data.coder_parameter.memory.value
+  disk_size_gb = data.coder_parameter.disk_size.value
+
+  env_vars = merge({
+    CLAUDE_CODE_OAUTH_TOKEN = var.claude_code_oauth_token
+    DOCKERHUB_USERNAME      = var.dockerhub_username
+    DOCKERHUB_TOKEN         = var.dockerhub_token
+    PROJECT_NAME            = var.project_name
+    GIT_REPO                = var.git_repo
+    INSTALL_COMMAND         = var.install_command
+    STARTUP_HOOK            = var.startup_hook
+    K0S_VERSION             = var.k0s_version
+  }, var.extra_env)
+
+  use_workspace_size_affinity = true
+}
+
+# =============================================================================
 # SERVICE APPS
 # =============================================================================
 
@@ -390,11 +440,26 @@ module "coder-login" {
 
 resource "coder_metadata" "workspace" {
   count       = data.coder_workspace.me.start_count
-  resource_id = docker_container.workspace[0].id
+  resource_id = module.workspace.pod_uid
 
   item {
     key   = "Runtime"
-    value = "Sysbox k0s (Single-node Kubernetes)"
+    value = "Sysbox k0s (Kubernetes)"
+  }
+
+  item {
+    key   = "CPU"
+    value = "${data.coder_parameter.cpu.value} cores"
+  }
+
+  item {
+    key   = "Memory"
+    value = "${data.coder_parameter.memory.value} GB"
+  }
+
+  item {
+    key   = "Disk"
+    value = "${data.coder_parameter.disk_size.value} GB"
   }
 
   item {

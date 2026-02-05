@@ -1,12 +1,32 @@
+# Moltbot Coder Template Module
+# AI agent development environment
+# Uses Kubernetes with sysbox-runc for Docker-in-Docker support
+
 terraform {
   required_providers {
     coder = {
-      source = "coder/coder"
+      source  = "coder/coder"
+      version = "~> 2.0"
     }
-    docker = {
-      source = "kreuzwerker/docker"
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.16.0"
     }
   }
+}
+
+# Use in-cluster config when Coder runs as a pod
+provider "kubernetes" {
+  # Automatically uses in-cluster config
+}
+
+# =============================================================================
+# VARIABLES
+# =============================================================================
+
+variable "namespace" {
+  type        = string
+  description = "Kubernetes namespace for workspaces (inherited from tenant provisioning)"
 }
 
 variable "project_name" {
@@ -89,58 +109,87 @@ variable "dockerhub_token" {
   default     = ""
 }
 
+# =============================================================================
+# CODER DATA SOURCES
+# =============================================================================
+
+data "coder_provisioner" "me" {}
 data "coder_workspace" "me" {}
 data "coder_workspace_owner" "me" {}
 
-provider "docker" {
-  host = "unix:///var/run/docker.sock"
-}
+# =============================================================================
+# PARAMETERS
+# =============================================================================
 
-resource "docker_volume" "home" {
-  name = "coder-${data.coder_workspace.me.id}-home"
-  lifecycle {
-    ignore_changes = all
+data "coder_parameter" "cpu" {
+  name         = "cpu"
+  display_name = "CPU Cores"
+  description  = "Number of CPU cores for your workspace"
+  default      = "4"
+  mutable      = true
+  option {
+    name  = "2 Cores (Light)"
+    value = "2"
+  }
+  option {
+    name  = "4 Cores (Standard)"
+    value = "4"
+  }
+  option {
+    name  = "8 Cores (Heavy)"
+    value = "8"
+  }
+  option {
+    name  = "16 Cores (Intensive)"
+    value = "16"
   }
 }
 
-resource "docker_container" "workspace" {
-  count = data.coder_workspace.me.start_count
-  name  = "coder-${data.coder_workspace_owner.me.name}-${data.coder_workspace.me.name}"
-  image = "ghcr.io/codespacesh/moltbot:latest"
-
-  hostname   = data.coder_workspace.me.name
-  entrypoint = ["sh", "-c", coder_agent.main.init_script]
-  runtime    = "sysbox-runc"
-
-  env = [
-    "CODER_AGENT_TOKEN=${coder_agent.main.token}",
-    "ANTHROPIC_API_KEY=${var.anthropic_api_key}",
-    "OPENAI_API_KEY=${var.openai_api_key}",
-    "TELEGRAM_BOT_TOKEN=${var.telegram_bot_token}",
-    "DISCORD_BOT_TOKEN=${var.discord_bot_token}",
-    "SLACK_BOT_TOKEN=${var.slack_bot_token}",
-    "WHATSAPP_PHONE_ID=${var.whatsapp_phone_id}",
-    "WHATSAPP_TOKEN=${var.whatsapp_token}",
-    "MOLTBOT_CONFIG=${var.moltbot_config}",
-    "DOCKERHUB_USERNAME=${var.dockerhub_username}",
-    "DOCKERHUB_TOKEN=${var.dockerhub_token}",
-  ]
-
-  volumes {
-    volume_name    = docker_volume.home.name
-    container_path = "/home/coder"
-    read_only      = false
+data "coder_parameter" "memory" {
+  name         = "memory"
+  display_name = "Memory (GB)"
+  description  = "RAM for your workspace"
+  default      = "8"
+  mutable      = true
+  option {
+    name  = "4 GB"
+    value = "4"
   }
-
-  host {
-    host = "host.docker.internal"
-    ip   = "host-gateway"
+  option {
+    name  = "8 GB"
+    value = "8"
+  }
+  option {
+    name  = "16 GB"
+    value = "16"
+  }
+  option {
+    name  = "32 GB"
+    value = "32"
   }
 }
+
+data "coder_parameter" "disk_size" {
+  name         = "disk_size"
+  display_name = "Disk Size (GB)"
+  description  = "Storage for home directory and Docker images"
+  default      = "50"
+  type         = "number"
+  mutable      = false
+  validation {
+    min = 20
+    max = 500
+  }
+}
+
+# =============================================================================
+# CODER AGENT
+# =============================================================================
 
 resource "coder_agent" "main" {
-  os             = "linux"
-  arch           = "amd64"
+  os   = "linux"
+  arch = data.coder_provisioner.me.arch
+
   startup_script = <<-EOT
     #!/bin/bash
     set -e
@@ -163,9 +212,51 @@ resource "coder_agent" "main" {
   metadata {
     key          = "runtime"
     display_name = "Runtime"
-    value        = "Moltbot + XFCE + Docker"
+    value        = "Moltbot + XFCE + Docker (Kubernetes)"
   }
 }
+
+# =============================================================================
+# KUBERNETES WORKSPACE (shared module)
+# =============================================================================
+
+module "workspace" {
+  source = "../../modules/kubernetes-workspace"
+
+  namespace         = var.namespace
+  workspace_id      = data.coder_workspace.me.id
+  workspace_name    = data.coder_workspace.me.name
+  owner_name        = data.coder_workspace_owner.me.name
+  agent_token       = coder_agent.main.token
+  agent_init_script = coder_agent.main.init_script
+  start_count       = data.coder_workspace.me.start_count
+
+  image             = "ghcr.io/codespacesh/moltbot:latest"
+  image_pull_policy = "Always"
+
+  cpu_cores    = data.coder_parameter.cpu.value
+  memory_gb    = data.coder_parameter.memory.value
+  disk_size_gb = data.coder_parameter.disk_size.value
+
+  env_vars = {
+    ANTHROPIC_API_KEY  = var.anthropic_api_key
+    OPENAI_API_KEY     = var.openai_api_key
+    TELEGRAM_BOT_TOKEN = var.telegram_bot_token
+    DISCORD_BOT_TOKEN  = var.discord_bot_token
+    SLACK_BOT_TOKEN    = var.slack_bot_token
+    WHATSAPP_PHONE_ID  = var.whatsapp_phone_id
+    WHATSAPP_TOKEN     = var.whatsapp_token
+    MOLTBOT_CONFIG     = var.moltbot_config
+    DOCKERHUB_USERNAME = var.dockerhub_username
+    DOCKERHUB_TOKEN    = var.dockerhub_token
+  }
+
+  use_workspace_size_affinity = true
+}
+
+# =============================================================================
+# APPS
+# =============================================================================
 
 resource "coder_app" "vnc" {
   agent_id     = coder_agent.main.id
@@ -185,4 +276,33 @@ resource "coder_app" "moltbot" {
   url          = "http://localhost:3000"
   subdomain    = true
   share        = "authenticated"
+}
+
+# =============================================================================
+# METADATA
+# =============================================================================
+
+resource "coder_metadata" "workspace" {
+  count       = data.coder_workspace.me.start_count
+  resource_id = module.workspace.pod_uid
+
+  item {
+    key   = "Runtime"
+    value = "Moltbot (Kubernetes)"
+  }
+
+  item {
+    key   = "CPU"
+    value = "${data.coder_parameter.cpu.value} cores"
+  }
+
+  item {
+    key   = "Memory"
+    value = "${data.coder_parameter.memory.value} GB"
+  }
+
+  item {
+    key   = "Disk"
+    value = "${data.coder_parameter.disk_size.value} GB"
+  }
 }
