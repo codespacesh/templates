@@ -15,10 +15,6 @@ terraform {
   }
 }
 
-# Use in-cluster config when Coder runs as a pod
-provider "kubernetes" {
-  # Automatically uses in-cluster config
-}
 
 # =============================================================================
 # VARIABLES
