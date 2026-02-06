@@ -105,6 +105,7 @@ resource "kubernetes_pod_v1" "workspace" {
   spec {
     # Sysbox runtime for Docker-in-Docker support
     runtime_class_name = "sysbox-runc"
+    host_users         = false
 
     # Node selector ensures pod lands on sysbox-enabled nodes
     node_selector = {
