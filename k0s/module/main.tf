@@ -22,7 +22,8 @@ terraform {
 
 variable "namespace" {
   type        = string
-  description = "Kubernetes namespace for workspaces (inherited from tenant provisioning)"
+  description = "Kubernetes namespace for workspaces (auto-detected if empty)"
+  default     = ""
 }
 
 variable "project_name" {

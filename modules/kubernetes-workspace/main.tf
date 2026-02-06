@@ -11,10 +11,23 @@ terraform {
 }
 
 # =============================================================================
+# AUTO-DETECT NAMESPACE FROM SERVICE ACCOUNT
+# =============================================================================
+
+# When running in-cluster, read namespace from service account
+data "local_file" "namespace" {
+  count    = var.namespace == "" ? 1 : 0
+  filename = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+}
+
+# =============================================================================
 # LOCALS
 # =============================================================================
 
 locals {
+  # Use provided namespace or auto-detect from service account
+  namespace = var.namespace != "" ? var.namespace : trimspace(data.local_file.namespace[0].content)
+
   # Resource naming
   resource_name = "coder-${var.owner_name}-${lower(var.workspace_name)}"
   pvc_name      = "coder-${var.workspace_id}-home"
@@ -52,7 +65,7 @@ locals {
 resource "kubernetes_persistent_volume_claim_v1" "home" {
   metadata {
     name        = local.pvc_name
-    namespace   = var.namespace
+    namespace   = local.namespace
     labels      = local.common_labels
     annotations = var.extra_annotations
   }
@@ -84,7 +97,7 @@ resource "kubernetes_pod_v1" "workspace" {
 
   metadata {
     name        = local.resource_name
-    namespace   = var.namespace
+    namespace   = local.namespace
     labels      = local.common_labels
     annotations = var.extra_annotations
   }

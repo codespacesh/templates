@@ -7,7 +7,8 @@
 
 variable "namespace" {
   type        = string
-  description = "Kubernetes namespace for workspaces (inherited from tenant provisioning)"
+  description = "Kubernetes namespace for workspaces (auto-detected from service account if empty)"
+  default     = ""
 }
 
 variable "workspace_id" {

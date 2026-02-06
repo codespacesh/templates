@@ -17,7 +17,7 @@ output "pvc_name" {
 
 output "namespace" {
   description = "Namespace where resources are created"
-  value       = var.namespace
+  value       = local.namespace
 }
 
 output "workspace_size" {
