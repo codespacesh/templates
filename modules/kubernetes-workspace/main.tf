@@ -111,6 +111,14 @@ resource "kubernetes_pod_v1" "workspace" {
       "sysbox-runtime" = "running"
     }
 
+    # Image pull secrets for private registries
+    dynamic "image_pull_secrets" {
+      for_each = var.image_pull_secrets
+      content {
+        name = image_pull_secrets.value
+      }
+    }
+
     # Security context for sysbox
     security_context {
       run_as_user  = 1000

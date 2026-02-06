@@ -1,4 +1,4 @@
-# Moltbot Coder Template Module
+# OpenClaw Coder Template Module
 # AI agent development environment
 # Uses Kubernetes with sysbox-runc for Docker-in-Docker support
 
@@ -87,9 +87,9 @@ variable "whatsapp_token" {
   default     = ""
 }
 
-variable "moltbot_config" {
+variable "openclaw_config" {
   type        = string
-  description = "Custom Moltbot config JSON"
+  description = "Custom OpenClaw config JSON"
   default     = ""
 }
 
@@ -104,6 +104,18 @@ variable "dockerhub_token" {
   sensitive   = true
   description = "Docker Hub token"
   default     = ""
+}
+
+variable "image" {
+  type        = string
+  description = "Container image for the workspace (empty = use template default)"
+  default     = ""
+}
+
+variable "image_pull_secrets" {
+  type        = list(string)
+  description = "Image pull secret names for private registries"
+  default     = []
 }
 
 # =============================================================================
@@ -197,8 +209,8 @@ resource "coder_agent" "main" {
     # Start XFCE desktop
     /opt/coder-scripts/start-desktop.sh
 
-    # Setup Moltbot
-    /opt/coder-scripts/setup-moltbot.sh
+    # Setup OpenClaw
+    /opt/coder-scripts/setup-openclaw.sh
 
     # Clone repo if provided
     if [ -n "${var.git_repo}" ] && [ ! -d ~/project ]; then
@@ -209,7 +221,7 @@ resource "coder_agent" "main" {
   metadata {
     key          = "runtime"
     display_name = "Runtime"
-    value        = "Moltbot + XFCE + Docker (Kubernetes)"
+    value        = "OpenClaw + XFCE + Docker (Kubernetes)"
   }
 }
 
@@ -228,8 +240,9 @@ module "workspace" {
   agent_init_script = coder_agent.main.init_script
   start_count       = data.coder_workspace.me.start_count
 
-  image             = "ghcr.io/codespacesh/moltbot:latest"
-  image_pull_policy = "Always"
+  image              = var.image != "" ? var.image : "ghcr.io/codespacesh/openclaw:latest"
+  image_pull_policy  = "Always"
+  image_pull_secrets = var.image_pull_secrets
 
   cpu_cores    = data.coder_parameter.cpu.value
   memory_gb    = data.coder_parameter.memory.value
@@ -243,7 +256,7 @@ module "workspace" {
     SLACK_BOT_TOKEN    = var.slack_bot_token
     WHATSAPP_PHONE_ID  = var.whatsapp_phone_id
     WHATSAPP_TOKEN     = var.whatsapp_token
-    MOLTBOT_CONFIG     = var.moltbot_config
+    OPENCLAW_CONFIG    = var.openclaw_config
     DOCKERHUB_USERNAME = var.dockerhub_username
     DOCKERHUB_TOKEN    = var.dockerhub_token
   }
@@ -265,10 +278,10 @@ resource "coder_app" "vnc" {
   share        = "authenticated"
 }
 
-resource "coder_app" "moltbot" {
+resource "coder_app" "openclaw" {
   agent_id     = coder_agent.main.id
-  slug         = "moltbot"
-  display_name = "Moltbot"
+  slug         = "openclaw"
+  display_name = "OpenClaw"
   icon         = "/icon/terminal.svg"
   url          = "http://localhost:3000"
   subdomain    = true
@@ -285,7 +298,7 @@ resource "coder_metadata" "workspace" {
 
   item {
     key   = "Runtime"
-    value = "Moltbot (Kubernetes)"
+    value = "OpenClaw (Kubernetes)"
   }
 
   item {

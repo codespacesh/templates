@@ -127,3 +127,13 @@ variable "extra_annotations" {
   description = "Additional annotations to apply to resources"
   default     = {}
 }
+
+# =============================================================================
+# IMAGE PULL SECRETS
+# =============================================================================
+
+variable "image_pull_secrets" {
+  type        = list(string)
+  description = "List of image pull secret names for private registries"
+  default     = []
+}

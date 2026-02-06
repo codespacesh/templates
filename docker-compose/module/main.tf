@@ -82,6 +82,18 @@ variable "git_setup_hook" {
   default     = ""
 }
 
+variable "image" {
+  type        = string
+  description = "Container image for the workspace (empty = use template default)"
+  default     = ""
+}
+
+variable "image_pull_secrets" {
+  type        = list(string)
+  description = "Image pull secret names for private registries"
+  default     = []
+}
+
 # =============================================================================
 # CODER DATA SOURCES
 # =============================================================================
@@ -307,8 +319,9 @@ module "workspace" {
   agent_init_script = coder_agent.main.init_script
   start_count       = data.coder_workspace.me.start_count
 
-  image             = "ghcr.io/codespacesh/docker-compose:latest"
-  image_pull_policy = "Always"
+  image              = var.image != "" ? var.image : "ghcr.io/codespacesh/base:latest"
+  image_pull_policy  = "Always"
+  image_pull_secrets = var.image_pull_secrets
 
   cpu_cores    = data.coder_parameter.cpu.value
   memory_gb    = data.coder_parameter.memory.value
