@@ -414,7 +414,7 @@ module "code-server" {
 module "claude-code" {
   count                   = data.coder_workspace.me.start_count
   source                  = "registry.coder.com/coder/claude-code/coder"
-  version                 = "3.1.1"
+  version                 = "~> 4.0"
   agent_id                = coder_agent.main.id
   workdir                 = "/home/coder/${var.project_name}"
   ai_prompt               = ""
