@@ -106,11 +106,6 @@ resource "kubernetes_pod_v1" "workspace" {
     # Sysbox runtime for Docker-in-Docker support
     runtime_class_name = "sysbox-runc"
 
-    # Node selector ensures pod lands on sysbox-enabled nodes
-    node_selector = {
-      "sysbox-runtime" = "running"
-    }
-
     # Image pull secrets for private registries
     dynamic "image_pull_secrets" {
       for_each = var.image_pull_secrets
