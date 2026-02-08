@@ -144,7 +144,7 @@ resource "kubernetes_pod_v1" "workspace" {
     restart_policy = "Never"
 
     # Termination grace period
-    termination_grace_period_seconds = 300
+    termination_grace_period_seconds = 30
 
     container {
       name              = "workspace"
