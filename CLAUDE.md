@@ -76,8 +76,8 @@ Template-specific variables are documented in each template's main.tf.
 
 | Template | Default Image |
 |----------|---------------|
-| dind | `ghcr.io/codespacesh/base:latest` |
-| docker-compose | `ghcr.io/codespacesh/base:latest` |
+| dind | `ghcr.io/codespacesh/dind:latest` |
+| docker-compose | `ghcr.io/codespacesh/docker-compose:latest` |
 | openclaw | `ghcr.io/codespacesh/openclaw:latest` |
 
 ## Common Tasks

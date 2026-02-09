@@ -319,7 +319,7 @@ module "workspace" {
   agent_init_script = coder_agent.main.init_script
   start_count       = data.coder_workspace.me.start_count
 
-  image              = var.image != "" ? var.image : "ghcr.io/codespacesh/base:latest"
+  image              = var.image != "" ? var.image : "ghcr.io/codespacesh/docker-compose:latest"
   image_pull_policy  = "Always"
   image_pull_secrets = var.image_pull_secrets
 
