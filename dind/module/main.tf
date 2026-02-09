@@ -270,7 +270,7 @@ resource "coder_agent" "main" {
     export CODER_EMAIL="${data.coder_workspace_owner.me.email}"
 
     /opt/coder-scripts/setup-docker.sh
-    /opt/coder-scripts/start-vnc.sh
+    ( /opt/coder-scripts/start-vnc.sh ) >/dev/null 2>&1
 
     cd /home/coder
 
