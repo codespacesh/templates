@@ -230,9 +230,10 @@ data "coder_parameter" "ai_prompt" {
 # =============================================================================
 
 resource "coder_agent" "main" {
-  arch = data.coder_provisioner.me.arch
-  os   = "linux"
-  dir  = "/home/coder"
+  arch                    = data.coder_provisioner.me.arch
+  os                      = "linux"
+  dir                     = "/home/coder"
+  startup_script_behavior = "non-blocking"
 
   env = {
     CODER_MCP_CLAUDE_TASK_PROMPT   = data.coder_parameter.ai_prompt.value
