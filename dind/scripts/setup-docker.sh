@@ -17,7 +17,7 @@ sudo rm -rf /var/lib/docker/volumes/* 2>/dev/null || true
 sudo usermod -aG docker coder || true
 
 # Start Docker daemon
-sudo dockerd > /dev/null 2>&1 &
+setsid sudo dockerd </dev/null >/dev/null 2>&1 &
 
 echo "Waiting for Docker to start..."
 for i in {1..30}; do

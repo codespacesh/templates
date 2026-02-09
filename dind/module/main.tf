@@ -271,15 +271,15 @@ resource "coder_agent" "main" {
     export CODER_EMAIL="${data.coder_workspace_owner.me.email}"
 
     /opt/coder-scripts/setup-docker.sh
-    # Start VNC in background with output redirected to prevent pipe warning
+    # Start VNC - fully detach from startup script's pipes using setsid
     export DISPLAY=:99
-    Xvfb :99 -screen 0 1920x1080x24 >/dev/null 2>&1 &
+    setsid Xvfb :99 -screen 0 1920x1080x24 </dev/null >/dev/null 2>&1 &
     sleep 1
-    fluxbox >/dev/null 2>&1 &
+    setsid fluxbox </dev/null >/dev/null 2>&1 &
     sleep 1
-    x11vnc -display :99 -forever -nopw -shared -rfbport 5900 >/dev/null 2>&1 &
+    setsid x11vnc -display :99 -forever -nopw -shared -rfbport 5900 </dev/null >/dev/null 2>&1 &
     sleep 1
-    websockify --web=/usr/share/novnc 6080 localhost:5900 >/dev/null 2>&1 &
+    setsid websockify --web=/usr/share/novnc 6080 localhost:5900 </dev/null >/dev/null 2>&1 &
     echo "VNC desktop started on :5900 (noVNC on :6080)"
 
     cd /home/coder
