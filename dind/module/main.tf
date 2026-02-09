@@ -399,7 +399,7 @@ resource "coder_app" "vnc" {
   display_name = "VNC Desktop"
   url          = "http://localhost:6080/vnc.html?autoconnect=true"
   icon         = "/icon/desktop.svg"
-  subdomain    = false
+  subdomain    = true
   share        = "authenticated"
 }
 
