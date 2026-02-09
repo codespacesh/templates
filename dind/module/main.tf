@@ -275,10 +275,10 @@ resource "coder_agent" "main" {
     cd /home/coder
 
     # Run git setup hook if provided (for auth configuration)
-    if [ -n "${var.git_setup_hook}" ]; then
-      echo "Running git setup hook..."
-      ${var.git_setup_hook}
-    fi
+    %{ if var.git_setup_hook != "" }
+    echo "Running git setup hook..."
+    ${var.git_setup_hook}
+    %{ endif }
 
     if [ ! -d "/home/coder/${var.project_name}/.git" ]; then
       rm -rf "/home/coder/${var.project_name}"
@@ -297,21 +297,27 @@ resource "coder_agent" "main" {
     fi
 
     # Run install command if provided
-    if [ -n "${var.install_command}" ]; then
-      ${var.install_command}
-    fi
+    %{ if var.install_command != "" }
+    ${var.install_command}
+    %{ endif }
 
     [ -f .env.development ] && cp .env.development .env
 
-    docker compose up -d
+    if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
+      docker compose up -d
+    fi
 
-    if [ -n "${var.startup_hook}" ] && [ -f "${var.startup_hook}" ]; then
+    %{ if var.startup_hook != "" }
+    if [ -f "${var.startup_hook}" ]; then
       echo "Running startup hook: ${var.startup_hook}"
       bash "${var.startup_hook}"
     fi
+    %{ endif }
 
     echo "=== ${var.project_name} workspace ready ==="
-    docker compose ps || true
+    if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
+      docker compose ps || true
+    fi
   EOT
 }
 
