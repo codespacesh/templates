@@ -50,6 +50,15 @@ RUN systemctl enable docker
 # Create symlink for standalone docker-compose
 RUN ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/bin/docker-compose
 
+# Install AgentAPI (pre-installed to avoid sudo requirement at runtime)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then BINARY="agentapi-linux-amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then BINARY="agentapi-linux-arm64"; \
+    else echo "Unsupported arch: $ARCH" && exit 1; fi && \
+    curl -fsSL -o /usr/local/bin/agentapi \
+      "https://github.com/coder/agentapi/releases/download/v0.11.8/$BINARY" && \
+    chmod +x /usr/local/bin/agentapi
+
 # Copy DinD scripts
 COPY dind/scripts /opt/coder-scripts/
 RUN chmod +x /opt/coder-scripts/*.sh
