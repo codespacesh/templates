@@ -114,11 +114,14 @@ resource "kubernetes_pod_v1" "workspace" {
       }
     }
 
-    # Security context for sysbox
-    security_context {
-      run_as_user  = 1000
-      run_as_group = 1000
-      fs_group     = 1000
+    # Security context — run as root for DinD (sysbox isolates via user namespaces)
+    dynamic "security_context" {
+      for_each = var.run_as_root ? [] : [1]
+      content {
+        run_as_user  = 1000
+        run_as_group = 1000
+        fs_group     = 1000
+      }
     }
 
     # Optional node affinity based on workspace size

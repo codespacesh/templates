@@ -113,6 +113,16 @@ variable "use_workspace_size_affinity" {
 }
 
 # =============================================================================
+# SECURITY
+# =============================================================================
+
+variable "run_as_root" {
+  type        = bool
+  description = "Run container as root (uid 0). Required for DinD templates where dockerd needs root. Sysbox provides user namespace isolation so root inside the container is safe."
+  default     = false
+}
+
+# =============================================================================
 # LABELS AND ANNOTATIONS
 # =============================================================================
 
