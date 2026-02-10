@@ -280,6 +280,12 @@ resource "coder_app" "vnc" {
   url          = "http://localhost:6080/vnc.html"
   subdomain    = true
   share        = "authenticated"
+
+  healthcheck {
+    url       = "http://localhost:6080"
+    interval  = 15
+    threshold = 100
+  }
 }
 
 resource "coder_app" "openclaw" {

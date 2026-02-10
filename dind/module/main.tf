@@ -411,6 +411,12 @@ resource "coder_app" "vnc" {
   icon         = "/icon/desktop.svg"
   subdomain    = true
   share        = "authenticated"
+
+  healthcheck {
+    url       = "http://localhost:6080"
+    interval  = 15
+    threshold = 100
+  }
 }
 
 # =============================================================================
