@@ -38,9 +38,10 @@ variable "git_repos" {
 
 variable "services" {
   type = map(object({
-    port        = number
-    public      = bool
-    healthcheck = bool
+    port             = number
+    public           = bool
+    healthcheck      = bool
+    healthcheck_path = optional(string, "")
   }))
   description = "Services to expose"
   default     = {}
@@ -369,7 +370,7 @@ resource "coder_app" "services" {
   dynamic "healthcheck" {
     for_each = each.value.healthcheck ? [1] : []
     content {
-      url       = "http://localhost:${each.value.port}"
+      url       = "http://localhost:${each.value.port}${each.value.healthcheck_path}"
       interval  = 15
       threshold = 100
     }
