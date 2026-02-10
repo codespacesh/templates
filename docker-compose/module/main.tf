@@ -202,7 +202,7 @@ data "coder_parameter" "issue_branch" {
 }
 
 data "coder_parameter" "ai_prompt" {
-  name         = "AI Prompt"
+  name         = "ai_prompt"
   display_name = "AI Prompt"
   description  = "AI prompt for workspace tasks"
   default      = data.coder_parameter.issue_number.value != "" ? join("\n", [
