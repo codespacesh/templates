@@ -275,7 +275,7 @@ resource "coder_agent" "main" {
     echo "=== Starting ${var.project_name} workspace ==="
 
     if ! command -v coder &> /dev/null; then
-      curl -fsSL https://coder.com/install.sh | sh -s -- --prefix ~/.local
+      curl -fsSL https://coder.com/install.sh | sh
     fi
 
     export DOCKERHUB_USERNAME="${var.dockerhub_username}"

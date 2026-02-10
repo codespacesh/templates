@@ -1,23 +1,24 @@
 #!/bin/bash
 # Setup Docker for Coder workspace
+# Runs as root inside sysbox (user namespace maps root to non-root on host)
 set -e
 
 echo ">>> Setting up Docker environment..."
 
-sudo chown -R coder:coder /home/coder || echo "Warning: Could not change ownership"
+chown -R coder:coder /home/coder || echo "Warning: Could not change ownership"
 
 # Clean up leftover Docker state
 echo "Cleaning up Docker state..."
-sudo rm -rf /var/lib/docker/overlay2/* 2>/dev/null || true
-sudo rm -rf /var/lib/docker/containers/* 2>/dev/null || true
-sudo rm -rf /var/lib/docker/image/* 2>/dev/null || true
-sudo rm -rf /var/lib/docker/network/* 2>/dev/null || true
-sudo rm -rf /var/lib/docker/volumes/* 2>/dev/null || true
+rm -rf /var/lib/docker/overlay2/* 2>/dev/null || true
+rm -rf /var/lib/docker/containers/* 2>/dev/null || true
+rm -rf /var/lib/docker/image/* 2>/dev/null || true
+rm -rf /var/lib/docker/network/* 2>/dev/null || true
+rm -rf /var/lib/docker/volumes/* 2>/dev/null || true
 
-sudo usermod -aG docker coder || true
+usermod -aG docker coder || true
 
-# Start Docker daemon
-setsid sudo dockerd </dev/null >/dev/null 2>&1 &
+# Start Docker daemon (no sudo needed — running as root inside sysbox)
+setsid dockerd </dev/null >/dev/null 2>&1 &
 
 echo "Waiting for Docker to start..."
 for i in {1..30}; do

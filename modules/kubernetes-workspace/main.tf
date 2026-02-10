@@ -114,15 +114,10 @@ resource "kubernetes_pod_v1" "workspace" {
       }
     }
 
-    # Security context — run as root for DinD (sysbox isolates via user namespaces)
-    dynamic "security_context" {
-      for_each = var.run_as_root ? [] : [1]
-      content {
-        run_as_user  = 1000
-        run_as_group = 1000
-        fs_group     = 1000
-      }
-    }
+    # Security is handled by Kyverno (allowPrivilegeEscalation, AppArmor)
+    # and sysbox (user namespace isolation via hostUsers: false).
+    # No security_context needed here — the container runs as root inside
+    # sysbox's user namespace, which maps to non-root on the host.
 
     # Optional node affinity based on workspace size
     dynamic "affinity" {

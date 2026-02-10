@@ -57,7 +57,14 @@ RUN chmod +x /opt/coder-scripts/*.sh
 # Add coder user to docker group
 RUN usermod -aG docker coder
 
-USER coder
+# Stay as root — sysbox maps uid 0 inside to non-root on host via user namespaces.
+# Docker daemon requires root to start, and NoNewPrivs (injected by Kyverno) blocks
+# sudo, so the container must start as root directly. This is safe because:
+#   - sysbox user namespace isolation (hostUsers: false) maps root to non-root on host
+#   - seccomp blocks dangerous syscalls (kexec, pivot_root)
+#   - AppArmor runtime/default profile blocks mount(), raw packets, /proc/sys writes
+#   - Kyverno blocks privileged containers, host namespaces, hostPath, dangerous caps
+USER root
 
 LABEL org.opencontainers.image.source="https://github.com/codespacesh/templates"
 LABEL org.opencontainers.image.description="DinD Coder Workspace with Docker and VNC"
