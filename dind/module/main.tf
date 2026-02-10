@@ -456,7 +456,7 @@ module "claude-code" {
   ai_prompt               = ""
   claude_code_oauth_token = var.claude_code_oauth_token
   install_claude_code     = true
-  install_agentapi        = false  # pre-installed in Docker image (sudo not available)
+  install_agentapi        = true
   report_tasks            = true
 }
 
