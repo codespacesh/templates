@@ -14,8 +14,21 @@ else
   exit 1
 fi
 
-# Export env vars for systemd services (exclude large/bash-internal vars)
-printenv | grep -vE '^(CODER_AGENT_INIT_SCRIPT|BASH.*|SHELL|PWD|OLDPWD|SHLVL|_)=' > /etc/coder-agent.env
+# Export env vars for systemd services
+# Use null-delimited parsing to correctly handle multiline values (like CODER_AGENT_INIT_SCRIPT)
+# Skip multiline values entirely since systemd EnvironmentFile doesn't support them
+env -0 | while IFS= read -r -d $'\0' entry; do
+  name="${entry%%=*}"
+  case "$name" in
+    CODER_AGENT_INIT_SCRIPT|BASH*|SHELL|PWD|OLDPWD|SHLVL|_) continue ;;
+  esac
+  value="${entry#*=}"
+  # Skip multiline values (systemd EnvironmentFile doesn't support them)
+  case "$value" in
+    *$'\n'*) continue ;;
+  esac
+  echo "${name}=${value}"
+done > /etc/coder-agent.env
 chmod 644 /etc/coder-agent.env
 
 # Ensure coder owns home
