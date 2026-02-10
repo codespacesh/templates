@@ -86,6 +86,20 @@ templates/
     └── build-images.yaml
 ```
 
+## Auto-Launch from GitHub Issues
+
+Templates support auto-launching workspaces when a GitHub issue is labeled. The `dind` and `docker-compose` templates include built-in parameters for issue metadata (`issue_number`, `issue_title`, `issue_body`, `issue_branch`, `ai_prompt`).
+
+When an issue gets the `launch-codespace` label, a GitHub Action creates a Coder workspace with an AI agent that starts working on the issue automatically.
+
+**Setup requires:**
+1. A Coder API token stored as `CODER_TOKEN` GitHub secret
+2. A `launch-codespace` label on the repo
+3. A GitHub Action workflow that calls `coder create` with issue parameters
+4. `.claude/settings.json` and `CLAUDE.md` for AI agent configuration
+
+See the [example repo's setup guide](https://github.com/codespacesh/example/blob/main/docs/auto-launch-from-github-issues.md) for full instructions.
+
 ## Creating a New Template
 
 1. Create a new directory: `mkdir mytemplate`
