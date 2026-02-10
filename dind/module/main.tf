@@ -245,10 +245,9 @@ locals {
 # =============================================================================
 
 resource "coder_agent" "main" {
-  arch                    = data.coder_provisioner.me.arch
-  os                      = "linux"
-  dir                     = "/home/coder"
-  startup_script_behavior = "non-blocking"
+  arch = data.coder_provisioner.me.arch
+  os   = "linux"
+  dir  = "/home/coder"
 
   env = {
     CODER_MCP_CLAUDE_TASK_PROMPT   = data.coder_parameter.ai_prompt.value
@@ -274,28 +273,28 @@ resource "coder_agent" "main" {
     set -e
     echo "=== Starting ${var.project_name} workspace ==="
 
+    # Install Coder CLI (user-space, running as coder)
     if ! command -v coder &> /dev/null; then
-      curl -fsSL https://coder.com/install.sh | sh
+      curl -fsSL https://coder.com/install.sh | sh -s -- --prefix ~/.local
     fi
 
-    export DOCKERHUB_USERNAME="${var.dockerhub_username}"
-    export DOCKERHUB_TOKEN="${var.dockerhub_token}"
     export PROJECT_NAME="${var.project_name}"
     export CODER_WORKSPACE_NAME="${data.coder_workspace.me.name}"
     export CODER_USERNAME="${data.coder_workspace_owner.me.name}"
     export CODER_EMAIL="${data.coder_workspace_owner.me.email}"
 
-    /opt/coder-scripts/setup-docker.sh
-    # Start VNC - fully detach from startup script's pipes using setsid
-    export DISPLAY=:99
-    setsid Xvfb :99 -screen 0 1920x1080x24 </dev/null >/dev/null 2>&1 &
-    sleep 1
-    setsid fluxbox </dev/null >/dev/null 2>&1 &
-    sleep 1
-    setsid x11vnc -display :99 -forever -nopw -shared -rfbport 5900 </dev/null >/dev/null 2>&1 &
-    sleep 1
-    setsid websockify --web=/usr/share/novnc 6080 localhost:5900 </dev/null >/dev/null 2>&1 &
-    echo "VNC desktop started on :5900 (noVNC on :6080)"
+    # Wait for Docker (started by systemd)
+    echo "Waiting for Docker..."
+    for i in {1..30}; do
+      docker info > /dev/null 2>&1 && break
+      echo "Waiting for Docker daemon... ($i/30)"
+      sleep 2
+    done
+
+    # DockerHub auth
+    if [ -n "${var.dockerhub_username}" ] && [ -n "${var.dockerhub_token}" ]; then
+      echo "${var.dockerhub_token}" | docker login -u "${var.dockerhub_username}" --password-stdin
+    fi
 
     cd /home/coder
 
@@ -360,7 +359,7 @@ resource "coder_agent" "main" {
 # =============================================================================
 
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.0.8"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.0.9"
 
   namespace         = var.namespace
   workspace_id      = data.coder_workspace.me.id
@@ -369,6 +368,9 @@ module "workspace" {
   agent_token       = coder_agent.main.token
   agent_init_script = coder_agent.main.init_script
   start_count       = data.coder_workspace.me.start_count
+
+  # Systemd as PID 1: Docker/VNC managed by systemd, agent runs as coder user
+  use_systemd = true
 
   image              = var.image != "" ? var.image : "ghcr.io/codespacesh/dind:latest"
   image_pull_policy  = "Always"
@@ -475,7 +477,7 @@ resource "coder_metadata" "workspace" {
 
   item {
     key   = "Runtime"
-    value = "Sysbox DinD (Kubernetes)"
+    value = "Sysbox DinD + Systemd (Kubernetes)"
   }
 
   item {

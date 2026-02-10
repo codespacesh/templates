@@ -1,0 +1,19 @@
+[Unit]
+Description=Coder Agent
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=coder
+Group=coder
+WorkingDirectory=/home/coder
+EnvironmentFile=/etc/coder-agent.env
+ExecStart=/bin/bash /opt/coder-scripts/agent-init.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

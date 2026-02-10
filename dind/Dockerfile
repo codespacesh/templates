@@ -54,16 +54,22 @@ RUN ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/bin/docker-compose
 COPY dind/scripts /opt/coder-scripts/
 RUN chmod +x /opt/coder-scripts/*.sh
 
+# Copy systemd service files
+COPY dind/scripts/coder-agent.service /etc/systemd/system/
+COPY dind/scripts/xvfb.service /etc/systemd/system/
+COPY dind/scripts/fluxbox.service /etc/systemd/system/
+COPY dind/scripts/x11vnc.service /etc/systemd/system/
+COPY dind/scripts/websockify-novnc.service /etc/systemd/system/
+
+# Enable all systemd services
+RUN systemctl enable coder-agent xvfb fluxbox x11vnc websockify-novnc
+
 # Add coder user to docker group
 RUN usermod -aG docker coder
 
-# Stay as root — sysbox maps uid 0 inside to non-root on host via user namespaces.
-# Docker daemon requires root to start, and NoNewPrivs (injected by Kyverno) blocks
-# sudo, so the container must start as root directly. This is safe because:
-#   - sysbox user namespace isolation (hostUsers: false) maps root to non-root on host
-#   - seccomp blocks dangerous syscalls (kexec, pivot_root)
-#   - AppArmor runtime/default profile blocks mount(), raw packets, /proc/sys writes
-#   - Kyverno blocks privileged containers, host namespaces, hostPath, dangerous caps
+# Container runs as root for systemd PID 1. Sysbox maps uid 0 to non-root on host.
+# The Coder agent and user processes run as 'coder' via systemd services.
+# Docker daemon runs as root (standard) under systemd supervision.
 USER root
 
 LABEL org.opencontainers.image.source="https://github.com/codespacesh/templates"
