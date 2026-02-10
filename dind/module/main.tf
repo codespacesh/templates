@@ -213,9 +213,22 @@ data "coder_parameter" "ai_prompt" {
   name         = "AI Prompt"
   display_name = "AI Prompt"
   description  = "AI prompt for workspace tasks"
-  default      = data.coder_parameter.issue_number.value != "" ? "You are working on Issue #${data.coder_parameter.issue_number.value}: ${data.coder_parameter.issue_title.value}\n\nRequirements:\n${data.coder_parameter.issue_body.value}\n\nBranch: ${data.coder_parameter.issue_branch.value}" : "You are a helpful AI assistant for development."
-  type         = "string"
-  mutable      = true
+  default      = data.coder_parameter.issue_number.value != "" ? join("\n", [
+    "You are working on GitHub Issue #${data.coder_parameter.issue_number.value}: ${data.coder_parameter.issue_title.value}",
+    "",
+    "## Your task",
+    "1. Run `gh issue view ${data.coder_parameter.issue_number.value}` to read the full issue and comments",
+    "2. Check out the branch: `${data.coder_parameter.issue_branch.value}`",
+    "3. Understand the codebase and implement the changes described in the issue",
+    "4. Run tests and verify your changes work",
+    "5. Commit your changes and push the branch",
+    "6. Create a pull request linking to issue #${data.coder_parameter.issue_number.value}",
+    "",
+    "## Issue description",
+    data.coder_parameter.issue_body.value,
+  ]) : "You are a helpful AI assistant for development."
+  type    = "string"
+  mutable = true
 }
 
 # =============================================================================
