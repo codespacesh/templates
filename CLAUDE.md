@@ -36,7 +36,7 @@ All templates use a shared Terraform module at `modules/kubernetes-workspace/`. 
 
 ```terraform
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.0.0"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.0.4"
 }
 ```
 
@@ -59,7 +59,7 @@ module "workspace" {
   image              = "ghcr.io/myorg/custom-image:latest"
   image_pull_secrets = ["my-registry-secret"]
   project_name       = "myproject"
-  git_repo           = "https://github.com/myorg/myproject"
+  git_repos          = { "myproject" = "https://github.com/myorg/myproject" }
 }
 ```
 
@@ -117,7 +117,7 @@ coder templates push <template-name> --directory <template>/module --yes
 
 # Template with required variables (e.g., dind)
 coder templates push dind --directory dind/module --yes \
-  --variable git_repo="https://github.com/org/repo" \
+  --variable git_repos='{"myproject":"https://github.com/org/repo"}' \
   --variable project_name="myproject"
 ```
 
@@ -129,7 +129,7 @@ git add -A && git commit -m "fix: description" && git push
 
 # 2. Push template to Coder
 coder templates push dind --directory dind/module --yes \
-  --variable git_repo="https://github.com/coder/coder" \
+  --variable git_repos='{"coder":"https://github.com/coder/coder"}' \
   --variable project_name="coder"
 
 # 3. Update workspace to use new template version

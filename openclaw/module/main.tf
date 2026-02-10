@@ -31,10 +31,10 @@ variable "project_name" {
   description = "Name of the project"
 }
 
-variable "git_repo" {
-  type        = string
-  description = "Git repository URL"
-  default     = ""
+variable "git_repos" {
+  type        = map(string)
+  description = "Map of directory name → git repo URL. Key matching project_name is the primary repo."
+  default     = {}
 }
 
 # AI Provider credentials
@@ -212,10 +212,14 @@ resource "coder_agent" "main" {
     # Setup OpenClaw
     /opt/coder-scripts/setup-openclaw.sh
 
-    # Clone repo if provided
-    if [ -n "${var.git_repo}" ] && [ ! -d ~/project ]; then
-      git clone ${var.git_repo} ~/project
+    # Clone repos if provided
+    cd /home/coder
+    %{ for dir_name, repo_url in var.git_repos }
+    if [ ! -d "/home/coder/${dir_name}/.git" ]; then
+      rm -rf "/home/coder/${dir_name}"
+      git clone "${repo_url}" "${dir_name}"
     fi
+    %{ endfor }
   EOT
 
   metadata {

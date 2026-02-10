@@ -31,9 +31,9 @@ variable "project_name" {
   description = "Project directory name in /home/coder"
 }
 
-variable "git_repo" {
-  type        = string
-  description = "Git repository URL"
+variable "git_repos" {
+  type        = map(string)
+  description = "Map of directory name → git repo URL. Key matching project_name is the primary repo."
 }
 
 variable "services" {
@@ -105,14 +105,6 @@ data "coder_workspace_owner" "me" {}
 # =============================================================================
 # PARAMETERS
 # =============================================================================
-
-data "coder_parameter" "git_repo" {
-  name         = "git_repo"
-  display_name = "Git Repository"
-  default      = var.git_repo
-  type         = "string"
-  mutable      = false
-}
 
 data "coder_parameter" "cpu" {
   name         = "cpu"
@@ -218,6 +210,15 @@ data "coder_parameter" "ai_prompt" {
 }
 
 # =============================================================================
+# LOCALS
+# =============================================================================
+
+locals {
+  primary_repo_url = var.git_repos[var.project_name]
+  additional_repos = { for k, v in var.git_repos : k => v if k != var.project_name }
+}
+
+# =============================================================================
 # CODER AGENT
 # =============================================================================
 
@@ -272,10 +273,19 @@ resource "coder_agent" "main" {
       curl -fsSL "${var.git_setup_hook}" | bash
     fi
 
+    # Clone primary repo
     if [ ! -d "/home/coder/${var.project_name}/.git" ]; then
       rm -rf "/home/coder/${var.project_name}"
-      git clone "${var.git_repo}" "${var.project_name}"
+      git clone "${local.primary_repo_url}" "${var.project_name}"
     fi
+
+    # Clone additional repos
+    %{ for dir_name, repo_url in local.additional_repos }
+    if [ ! -d "/home/coder/${dir_name}/.git" ]; then
+      rm -rf "/home/coder/${dir_name}"
+      git clone "${repo_url}" "${dir_name}"
+    fi
+    %{ endfor }
 
     cd "/home/coder/${var.project_name}"
 
@@ -332,7 +342,7 @@ module "workspace" {
     DOCKERHUB_USERNAME      = var.dockerhub_username
     DOCKERHUB_TOKEN         = var.dockerhub_token
     PROJECT_NAME            = var.project_name
-    GIT_REPO                = var.git_repo
+    GIT_REPOS               = jsonencode(var.git_repos)
     INSTALL_COMMAND         = var.install_command
     STARTUP_HOOK            = var.startup_hook
   }
@@ -442,7 +452,7 @@ resource "coder_metadata" "workspace" {
   }
 
   item {
-    key   = "Repository"
-    value = data.coder_parameter.git_repo.value
+    key   = "Repositories"
+    value = join(", ", values(var.git_repos))
   }
 }

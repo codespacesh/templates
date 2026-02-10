@@ -21,7 +21,7 @@ module "workspace" {
   source = "git::https://github.com/codespacesh/templates.git//docker-compose/module"
 
   project_name = "myproject"
-  git_repo     = "https://github.com/myorg/myproject.git"
+  git_repos    = { "myproject" = "https://github.com/myorg/myproject.git" }
 
   services = {
     app   = { port = 8081, public = true, healthcheck = true }
