@@ -20,7 +20,7 @@ fi
 env -0 | while IFS= read -r -d $'\0' entry; do
   name="${entry%%=*}"
   case "$name" in
-    CODER_AGENT_INIT_SCRIPT|BASH*|SHELL|PWD|OLDPWD|SHLVL|_) continue ;;
+    CODER_AGENT_INIT_SCRIPT|HOME|BASH*|SHELL|PWD|OLDPWD|SHLVL|_) continue ;;
   esac
   value="${entry#*=}"
   # Skip multiline values (systemd EnvironmentFile doesn't support them)
