@@ -280,6 +280,11 @@ resource "coder_agent" "main" {
     set -e
     echo "=== Starting ${var.project_name} workspace ==="
 
+    # Fix home directory ownership on first PVC mount (created as root)
+    if [ ! -w /home/coder ]; then
+      sudo chown -R coder:coder /home/coder
+    fi
+
     # Install Coder CLI (user-space, running as coder)
     if ! command -v coder &> /dev/null; then
       curl -fsSL https://coder.com/install.sh | sh -s -- --prefix ~/.local
