@@ -38,9 +38,11 @@ fi
 
 # Build prompt: first-run vs restart
 ISSUE_MARKER="/home/coder/.claude_started_issue_${ISSUE_NUMBER}"
+PROMPT_FILE="/tmp/claude-prompt.txt"
 
 if [ -f "$ISSUE_MARKER" ]; then
-  PROMPT="=== WORKSPACE RESTARTED ===
+  cat > "$PROMPT_FILE" <<EOF
+=== WORKSPACE RESTARTED ===
 
 Previous work on GitHub Issue #${ISSUE_NUMBER} has already been started.
 ISSUE: ${ISSUE_TITLE}
@@ -48,10 +50,12 @@ ISSUE: ${ISSUE_TITLE}
 Before taking any action:
 1. Check current state: git status && git diff
 2. Review the branch: git branch
-3. Wait for instructions before making changes"
+3. Wait for instructions before making changes
+EOF
 else
   echo "$(date): Started issue #${ISSUE_NUMBER}" > "$ISSUE_MARKER"
-  PROMPT="You are working on GitHub Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+  cat > "$PROMPT_FILE" <<EOF
+You are working on GitHub Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
 ## Your task
 1. Run \`gh issue view ${ISSUE_NUMBER}\` to read the full issue and comments
@@ -62,14 +66,12 @@ else
 6. Create a pull request linking to issue #${ISSUE_NUMBER}
 
 ## Issue description
-${ISSUE_BODY}"
+${ISSUE_BODY}
+EOF
 fi
 
 # Start tmux session
 tmux new-session -d -s claude \
-  "cd ${WORKDIR} && claude <<'CLAUDE_PROMPT_EOF'
-${PROMPT}
-CLAUDE_PROMPT_EOF
-"
+  "cd ${WORKDIR} && claude -p \"\$(cat ${PROMPT_FILE})\""
 
 echo "claude-session: started (attach with: claude-attach)"
