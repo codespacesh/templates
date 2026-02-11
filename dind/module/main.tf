@@ -298,7 +298,7 @@ resource "coder_agent" "main" {
     # Start Docker daemon (not using systemd — agent is PID 1)
     if ! docker info > /dev/null 2>&1; then
       echo "Starting Docker daemon..."
-      setsid dockerd </dev/null >/dev/null 2>&1 &
+      sudo setsid dockerd </dev/null >/dev/null 2>&1 &
     fi
 
     # Wait for Docker

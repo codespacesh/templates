@@ -58,9 +58,9 @@ RUN chmod +x /opt/coder-scripts/*
 # Add coder user to docker group
 RUN usermod -aG docker coder
 
-# Container runs as root for Docker daemon. Sysbox maps uid 0 to non-root on host.
-# The Coder agent runs the startup script which launches processes as needed.
-USER root
+# Run as coder user. dockerd is started via sudo in the startup script.
+# Sysbox maps all uids to non-root on host.
+USER coder
 
 LABEL org.opencontainers.image.source="https://github.com/codespacesh/templates"
 LABEL org.opencontainers.image.description="DinD Coder Workspace with Docker and VNC"

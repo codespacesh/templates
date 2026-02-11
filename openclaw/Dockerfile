@@ -16,8 +16,8 @@ RUN chmod +x /opt/coder-scripts/*.sh
 # Install OpenClaw globally (needs root for /usr/lib/node_modules)
 RUN npm install -g openclaw@latest
 
-# Container runs as root for Docker daemon. Sysbox maps uid 0 to non-root on host.
-USER root
+# Run as coder user (inherits from desktop which inherits from dind)
+USER coder
 
 LABEL org.opencontainers.image.source="https://github.com/codespacesh/templates"
 LABEL org.opencontainers.image.description="OpenClaw Coder Workspace"
