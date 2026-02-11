@@ -144,6 +144,21 @@ resource "kubernetes_pod_v1" "workspace" {
     # Termination grace period
     termination_grace_period_seconds = 30
 
+    # Fix /home/coder ownership before agent starts.
+    # PVC is created as root; module scripts (claude-code, code-server) run in
+    # parallel with the startup script, so chown must happen in an init container.
+    init_container {
+      name              = "init-home"
+      image             = var.image
+      image_pull_policy = var.image_pull_policy
+      command           = ["sh", "-c", "chown -R 1000:1000 /home/coder"]
+
+      volume_mount {
+        name       = "home"
+        mount_path = "/home/coder"
+      }
+    }
+
     container {
       name              = "workspace"
       image             = var.image
