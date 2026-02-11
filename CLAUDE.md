@@ -34,7 +34,7 @@ All templates use a shared Terraform module at `modules/kubernetes-workspace/`. 
 
 ```terraform
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.4"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.6"
 }
 ```
 
@@ -230,38 +230,57 @@ The `hashicorp/kubernetes` provider v2.37.0+ has a bug where `ResourceIdentity` 
 
 **Why we can't downgrade:** v2.38.0 added `sub_path_expr` to the schema. Any workspace state written by v2.38.0 contains this attribute and can't be decoded by older versions. The templates stay on `~> 2.37` (resolves to v2.38.0).
 
-**Fix for stuck workspaces:**
+**Key detail:** The null identity is stored at `instances[].identity` (a sibling of `attributes`), NOT inside `attributes.identity`. The fix script must target the correct location.
+
+**Fix for stuck workspaces (copy-paste ready):**
 ```bash
-# 1. Pull the workspace state
-coder state pull admin/<workspace> /tmp/workspace.tfstate
+# Replace WORKSPACE with your workspace name, e.g., admin/example-issue-9
 
-# 2. Fix the null identity values
-python3 << 'EOF'
+WORKSPACE="admin/<workspace>"
+
+# 1. Pull state, fix identity, push back
+coder state pull "$WORKSPACE" /tmp/ws.tfstate
+
+python3 << 'PYEOF'
 import json
-with open('/tmp/workspace.tfstate') as f:
+with open("/tmp/ws.tfstate") as f:
     state = json.load(f)
-for r in state.get('resources', []):
-    if r.get('type') == 'kubernetes_pod_v1':
-        for inst in r.get('instances', []):
-            identity = inst.get('identity')
-            if identity and all(v is None for v in identity.values()):
-                meta = inst['attributes']['metadata'][0]
-                inst['identity'] = {
-                    'api_version': 'v1',
-                    'kind': 'Pod',
-                    'name': meta['name'],
-                    'namespace': meta['namespace'],
+fixed = 0
+kind_map = {
+    "kubernetes_pod_v1": "Pod",
+    "kubernetes_persistent_volume_claim_v1": "PersistentVolumeClaim",
+    "kubernetes_config_map_v1": "ConfigMap",
+}
+for r in state.get("resources", []):
+    if r.get("type") in kind_map:
+        for inst in r.get("instances", []):
+            ident = inst.get("identity")
+            if isinstance(ident, dict) and any(v is None for v in ident.values()):
+                meta = inst["attributes"]["metadata"][0]
+                inst["identity"] = {
+                    "api_version": "v1",
+                    "kind": kind_map[r["type"]],
+                    "name": meta["name"],
+                    "namespace": meta["namespace"],
                 }
-                print(f"Fixed: {meta['name']}")
-with open('/tmp/workspace-fixed.tfstate', 'w') as f:
+                fixed += 1
+                print(f"Fixed: {r['type']} {meta['namespace']}/{meta['name']}")
+with open("/tmp/ws.tfstate", "w") as f:
     json.dump(state, f, indent=2)
-EOF
+print(f"Total fixed: {fixed}")
+PYEOF
 
-# 3. Push fixed state (--no-build skips terraform validation)
-coder state push --no-build admin/<workspace> /tmp/workspace-fixed.tfstate
+coder state push --no-build "$WORKSPACE" /tmp/ws.tfstate
 
-# 4. Workspace can now be stopped/started/deleted normally
+# 2. Start the workspace (or update + start if template version changed)
+coder start "$WORKSPACE" --yes
+# OR if updating to a new template version:
+# coder update "$WORKSPACE" --always-prompt=false
 ```
+
+**When this happens:** Every time a workspace is created or restarted with kubernetes provider v2.38.0+, the pod's identity may be written as all-nulls if pod creation takes time. The fix must be applied before the next start/stop/update operation.
+
+**Per-build state caveat:** Each Coder workspace operation (start/stop/update) creates a new build that snapshots state from the previous build. If you fix the state but then a start fails for another reason (e.g., pod crash), the NEXT operation copies the failed build's state — which may have null identity again. You may need to fix-and-retry multiple times.
 
 ## GitHub Actions
 
