@@ -290,6 +290,12 @@ resource "coder_agent" "main" {
     export CODER_USERNAME="${data.coder_workspace_owner.me.name}"
     export CODER_EMAIL="${data.coder_workspace_owner.me.email}"
 
+    # Start Docker daemon (not using systemd — agent is PID 1)
+    if ! docker info > /dev/null 2>&1; then
+      echo "Starting Docker daemon..."
+      setsid dockerd </dev/null >/dev/null 2>&1 &
+    fi
+
     # Wait for Docker
     echo "Waiting for Docker..."
     for i in {1..30}; do
