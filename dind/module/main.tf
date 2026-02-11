@@ -367,15 +367,16 @@ resource "coder_agent" "main" {
       bash /opt/coder-scripts/setup-openclaw.sh
     fi
 
-    # Start Claude in tmux session (non-blocking)
-    if [ -f /opt/coder-scripts/claude-session ]; then
-      setsid /opt/coder-scripts/claude-session --wait-for-claude </dev/null >/dev/null 2>&1 &
-    fi
+    # Launch Claude in a codewire session (non-blocking)
+    # Wait for claude CLI (installed by claude-code module)
+    for i in {1..30}; do
+      command -v claude &>/dev/null && break
+      sleep 2
+    done
 
-    # Make claude scripts available as commands
-    mkdir -p /home/coder/.local/bin
-    ln -sf /opt/coder-scripts/claude-attach /home/coder/.local/bin/claude-attach
-    ln -sf /opt/coder-scripts/claude-session /home/coder/.local/bin/claude-session
+    if command -v claude &>/dev/null && [ -n "$ISSUE_NUMBER" ]; then
+      cw launch --dir "/home/coder/${var.project_name}" -- claude -p "$CODER_MCP_CLAUDE_TASK_PROMPT"
+    fi
 
     echo "=== ${var.project_name} workspace ready ==="
     if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then

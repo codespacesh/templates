@@ -45,6 +45,11 @@ RUN apt-get update && \
     libx11-xcb1 \
     && rm -rf /var/lib/apt/lists/*
 
+# Install codewire (persistent PTY session manager)
+RUN curl -fsSL -o /usr/local/bin/cw \
+    https://github.com/codespacesh/codewire/releases/download/v0.1.1/cw-v0.1.1-x86_64-unknown-linux-musl \
+    && chmod +x /usr/local/bin/cw
+
 # Enable Docker with systemd
 RUN systemctl enable docker
 

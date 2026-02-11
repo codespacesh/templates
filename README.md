@@ -79,7 +79,7 @@ templates/
 │   ├── Dockerfile           # FROM base, adds Docker
 │   ├── module/              # Terraform module
 │   │   └── main.tf
-│   └── scripts/             # claude-session, claude-attach, etc.
+│   └── scripts/             # setup-docker, start-vnc, etc.
 ├── desktop/                 # XFCE desktop environment
 │   ├── Dockerfile           # FROM dind, adds XFCE + VNC
 │   └── scripts/
