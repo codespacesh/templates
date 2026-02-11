@@ -34,7 +34,7 @@ All templates use a shared Terraform module at `modules/kubernetes-workspace/`. 
 
 ```terraform
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.0.4"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.4"
 }
 ```
 
@@ -218,6 +218,50 @@ coder ssh admin/<workspace> -- 'for p in $(ls /proc/ | grep "^[0-9]*$"); do fd=$
 --wildcard-access-url "*.coder.example.com"
 ```
 See Coder docs on [wildcard access URL](https://coder.com/docs/admin/setup#wildcard-access-url) for setup with your DNS/ingress.
+
+### Kubernetes Provider Identity Tracking Bug
+
+The `hashicorp/kubernetes` provider v2.37.0+ has a bug where `ResourceIdentity` values are written as all-nulls to Terraform state when pod creation is slow. On the next plan/apply, the provider reads actual values, detects a mismatch, and errors with `Unexpected Identity Change`.
+
+**Affected versions:**
+- v2.37.0: identity tracking on `kubernetes_config_map_v1`
+- v2.38.0: identity tracking on ALL SDKv2 resources (including `kubernetes_pod_v1`) + added `sub_path_expr`
+- v3.0.x: also affected (GitHub #2779)
+
+**Why we can't downgrade:** v2.38.0 added `sub_path_expr` to the schema. Any workspace state written by v2.38.0 contains this attribute and can't be decoded by older versions. The templates stay on `~> 2.37` (resolves to v2.38.0).
+
+**Fix for stuck workspaces:**
+```bash
+# 1. Pull the workspace state
+coder state pull admin/<workspace> /tmp/workspace.tfstate
+
+# 2. Fix the null identity values
+python3 << 'EOF'
+import json
+with open('/tmp/workspace.tfstate') as f:
+    state = json.load(f)
+for r in state.get('resources', []):
+    if r.get('type') == 'kubernetes_pod_v1':
+        for inst in r.get('instances', []):
+            identity = inst.get('identity')
+            if identity and all(v is None for v in identity.values()):
+                meta = inst['attributes']['metadata'][0]
+                inst['identity'] = {
+                    'api_version': 'v1',
+                    'kind': 'Pod',
+                    'name': meta['name'],
+                    'namespace': meta['namespace'],
+                }
+                print(f"Fixed: {meta['name']}")
+with open('/tmp/workspace-fixed.tfstate', 'w') as f:
+    json.dump(state, f, indent=2)
+EOF
+
+# 3. Push fixed state (--no-build skips terraform validation)
+coder state push --no-build admin/<workspace> /tmp/workspace-fixed.tfstate
+
+# 4. Workspace can now be stopped/started/deleted normally
+```
 
 ## GitHub Actions
 
