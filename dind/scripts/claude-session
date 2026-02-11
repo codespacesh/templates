@@ -92,8 +92,8 @@ ${ISSUE_BODY}
 EOF
 fi
 
-# Start tmux session with claude in interactive mode
+# Start tmux session: run task with -p, then open interactive session to continue
 tmux new-session -d -s "$SESSION_NAME" \
-  "cd ${WORKDIR} && cat ${PROMPT_FILE} | claude"
+  "cd ${WORKDIR} && claude -p \"\$(cat ${PROMPT_FILE})\" --allowedTools 'Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch'; exec claude --resume"
 
 echo "claude-session: ${SESSION_NAME} started (attach with: claude-attach ${SESSION_NUM})"
