@@ -7,8 +7,10 @@ Reusable Coder workspace templates for different project types.
 | Template | Runtime | Use Case |
 |----------|---------|----------|
 | `base` | Ubuntu + Docker-in-Docker | Foundation for all templates |
+| `dind` | Docker-in-Docker | General-purpose workspaces with Claude Code |
 | `docker-compose` | Bun + Node.js | Projects using docker-compose |
-| `node-yarn` | Node.js + Yarn | Traditional Node.js projects |
+| `desktop` | XFCE + VNC | GUI desktop environment |
+| `openclaw` | Node.js + AI tools | AI agent development |
 
 ## Usage
 
@@ -18,7 +20,7 @@ Reference the module in your project's `infra/coder/main.tf`:
 
 ```hcl
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//docker-compose/module"
+  source = "git::https://github.com/codespacesh/templates.git//dind/module?ref=v1.1.0"
 
   project_name = "myproject"
   git_repos    = { "myproject" = "https://github.com/myorg/myproject.git" }
@@ -62,6 +64,7 @@ Images are automatically built and pushed to `ghcr.io/codespacesh/` on push to m
 Manual build:
 ```bash
 docker build -t ghcr.io/codespacesh/base:latest -f base/Dockerfile .
+docker build -t ghcr.io/codespacesh/dind:latest -f dind/Dockerfile .
 docker build -t ghcr.io/codespacesh/docker-compose:latest -f docker-compose/Dockerfile .
 ```
 
@@ -74,13 +77,23 @@ templates/
 │   ├── docker-archive-keyring.gpg
 │   ├── docker.list
 │   └── scripts/             # Common setup scripts
-├── docker-compose/          # Docker Compose template
-│   ├── Dockerfile           # FROM base, adds bun + node
+├── dind/                    # Docker-in-Docker template
+│   ├── Dockerfile           # FROM base, adds Docker
 │   ├── module/              # Terraform module
 │   │   └── main.tf
+│   └── scripts/             # claude-session, claude-attach, etc.
+├── docker-compose/          # Docker Compose template
+│   ├── Dockerfile           # FROM dind, adds bun + node
+│   ├── module/
+│   │   └── main.tf
 │   └── scripts/
-├── node-yarn/               # Node.js + Yarn
-│   ├── Dockerfile
+├── desktop/                 # XFCE desktop environment
+│   ├── Dockerfile           # FROM dind, adds XFCE + VNC
+│   └── scripts/
+├── openclaw/                # AI agent development
+│   ├── Dockerfile           # FROM desktop, adds Node.js
+│   ├── module/
+│   │   └── main.tf
 │   └── scripts/
 └── .github/workflows/
     └── build-images.yaml
