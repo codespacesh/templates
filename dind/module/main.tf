@@ -199,14 +199,6 @@ data "coder_parameter" "issue_title" {
   mutable      = true
 }
 
-data "coder_parameter" "issue_body" {
-  name         = "issue_body"
-  display_name = "Issue Body"
-  default      = ""
-  type         = "string"
-  mutable      = true
-}
-
 data "coder_parameter" "issue_branch" {
   name         = "issue_branch"
   display_name = "Issue Branch"
@@ -229,9 +221,6 @@ data "coder_parameter" "ai_prompt" {
     "4. Run tests and verify your changes work",
     "5. Commit your changes and push the branch",
     "6. Create a pull request linking to issue #${data.coder_parameter.issue_number.value}",
-    "",
-    "## Issue description",
-    data.coder_parameter.issue_body.value,
   ]) : "You are a helpful AI assistant for development."
   type    = "string"
   mutable = true
@@ -263,7 +252,6 @@ resource "coder_agent" "main" {
     CODER_MCP_CLAUDE_SYSTEM_PROMPT = "You are a helpful AI assistant for the ${var.project_name} development workspace."
     ISSUE_NUMBER                   = data.coder_parameter.issue_number.value
     ISSUE_TITLE                    = data.coder_parameter.issue_title.value
-    ISSUE_BODY                     = data.coder_parameter.issue_body.value
     ISSUE_BRANCH                   = data.coder_parameter.issue_branch.value
     PROJECT_NAME                   = var.project_name
   }

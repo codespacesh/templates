@@ -94,7 +94,7 @@ templates/
 
 ## Auto-Launch from GitHub Issues
 
-Templates support auto-launching workspaces when a GitHub issue is labeled. The `dind` template includes built-in parameters for issue metadata (`issue_number`, `issue_title`, `issue_body`, `issue_branch`, `ai_prompt`).
+Templates support auto-launching workspaces when a GitHub issue is labeled. The `dind` template includes built-in parameters for issue metadata (`issue_number`, `issue_title`, `issue_branch`, `ai_prompt`).
 
 When an issue gets the `launch-codespace` label, a GitHub Action creates a Coder workspace with an AI agent that starts working on the issue automatically.
 

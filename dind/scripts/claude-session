@@ -86,9 +86,6 @@ You are working on GitHub Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 4. Run tests and verify your changes work
 5. Commit your changes and push the branch
 6. Create a pull request linking to issue #${ISSUE_NUMBER}
-
-## Issue description
-${ISSUE_BODY}
 EOF
 fi
 
