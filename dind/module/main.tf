@@ -368,6 +368,12 @@ resource "coder_agent" "main" {
     fi
     %{ endif }
 
+    # Start OpenClaw gateway if setup script exists (baked into openclaw image)
+    if [ -f /opt/coder-scripts/setup-openclaw.sh ]; then
+      echo "Starting OpenClaw gateway..."
+      bash /opt/coder-scripts/setup-openclaw.sh
+    fi
+
     # Start Claude in tmux session (non-blocking)
     if [ -f /opt/coder-scripts/claude-session ]; then
       /opt/coder-scripts/claude-session --wait-for-claude &
