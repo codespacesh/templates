@@ -381,7 +381,7 @@ resource "coder_agent" "main" {
 
     # Start Claude in tmux session (non-blocking)
     if [ -f /opt/coder-scripts/claude-session ]; then
-      /opt/coder-scripts/claude-session --wait-for-claude &
+      setsid /opt/coder-scripts/claude-session --wait-for-claude </dev/null >/dev/null 2>&1 &
     fi
 
     # Make claude scripts available as commands
