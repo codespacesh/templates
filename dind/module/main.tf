@@ -373,9 +373,10 @@ resource "coder_agent" "main" {
       /opt/coder-scripts/claude-session --wait-for-claude &
     fi
 
-    # Make claude-attach available as a command
+    # Make claude scripts available as commands
     mkdir -p /home/coder/.local/bin
     ln -sf /opt/coder-scripts/claude-attach /home/coder/.local/bin/claude-attach
+    ln -sf /opt/coder-scripts/claude-session /home/coder/.local/bin/claude-session
 
     echo "=== ${var.project_name} workspace ready ==="
     if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
