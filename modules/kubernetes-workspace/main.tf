@@ -148,7 +148,7 @@ resource "kubernetes_pod_v1" "workspace" {
       name              = "workspace"
       image             = var.image
       image_pull_policy = var.image_pull_policy
-      command           = var.use_systemd ? ["/opt/coder-scripts/entrypoint.sh"] : ["sh", "-c", var.agent_init_script]
+      command           = ["sh", "-c", var.agent_init_script]
 
       # Core environment variables
       env {
@@ -162,15 +162,6 @@ resource "kubernetes_pod_v1" "workspace" {
         content {
           name  = env.value.name
           value = env.value.value
-        }
-      }
-
-      # Pass agent_init_script as env var for systemd mode
-      dynamic "env" {
-        for_each = var.use_systemd ? [1] : []
-        content {
-          name  = "CODER_AGENT_INIT_SCRIPT"
-          value = var.agent_init_script
         }
       }
 

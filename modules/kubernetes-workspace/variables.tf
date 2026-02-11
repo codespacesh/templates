@@ -37,12 +37,6 @@ variable "agent_init_script" {
   description = "Coder agent init script"
 }
 
-variable "use_systemd" {
-  type        = bool
-  description = "Use systemd as PID 1 (passes agent_init_script as env var, image must have entrypoint.sh)"
-  default     = false
-}
-
 variable "start_count" {
   type        = number
   description = "Number of workspace instances to start (0 or 1)"
