@@ -1,0 +1,75 @@
+#!/bin/bash
+# claude-session: Start Claude Code in a detached tmux session
+# Usage: claude-session [--wait-for-claude]
+set -e
+
+PROJECT_NAME="${PROJECT_NAME:-}"
+WORKDIR="/home/coder/${PROJECT_NAME}"
+
+# Auth check
+if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$CLAUDE_API_KEY" ]; then
+  echo "claude-session: no auth configured, skipping"
+  exit 0
+fi
+
+# Skip if no issue
+if [ -z "$ISSUE_NUMBER" ]; then
+  echo "claude-session: no issue number, skipping"
+  exit 0
+fi
+
+# Wait for Claude CLI (installed by claude-code module)
+if [ "$1" = "--wait-for-claude" ]; then
+  for i in {1..30}; do
+    command -v claude &>/dev/null && break
+    sleep 2
+  done
+fi
+if ! command -v claude &>/dev/null; then
+  echo "claude-session: claude CLI not found, skipping"
+  exit 0
+fi
+
+# Skip if already running
+if tmux has-session -t claude 2>/dev/null; then
+  echo "claude-session: session exists, use claude-attach"
+  exit 0
+fi
+
+# Build prompt: first-run vs restart
+ISSUE_MARKER="/home/coder/.claude_started_issue_${ISSUE_NUMBER}"
+
+if [ -f "$ISSUE_MARKER" ]; then
+  PROMPT="=== WORKSPACE RESTARTED ===
+
+Previous work on GitHub Issue #${ISSUE_NUMBER} has already been started.
+ISSUE: ${ISSUE_TITLE}
+
+Before taking any action:
+1. Check current state: git status && git diff
+2. Review the branch: git branch
+3. Wait for instructions before making changes"
+else
+  echo "$(date): Started issue #${ISSUE_NUMBER}" > "$ISSUE_MARKER"
+  PROMPT="You are working on GitHub Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+
+## Your task
+1. Run \`gh issue view ${ISSUE_NUMBER}\` to read the full issue and comments
+2. Check out the branch: \`${ISSUE_BRANCH}\`
+3. Understand the codebase and implement the changes
+4. Run tests and verify your changes work
+5. Commit your changes and push the branch
+6. Create a pull request linking to issue #${ISSUE_NUMBER}
+
+## Issue description
+${ISSUE_BODY}"
+fi
+
+# Start tmux session
+tmux new-session -d -s claude \
+  "cd ${WORKDIR} && claude <<'CLAUDE_PROMPT_EOF'
+${PROMPT}
+CLAUDE_PROMPT_EOF
+"
+
+echo "claude-session: started (attach with: claude-attach)"

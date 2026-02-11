@@ -1,0 +1,10 @@
+#!/bin/bash
+# claude-attach: Attach to the Claude Code tmux session
+# Detach with Ctrl+B, D
+if tmux has-session -t claude 2>/dev/null; then
+  exec tmux attach -t claude
+else
+  echo "No Claude session running."
+  echo "Claude starts automatically when a workspace is created with a GitHub issue."
+  exit 1
+fi

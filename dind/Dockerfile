@@ -23,6 +23,7 @@ RUN apt-get update && \
     novnc \
     websockify \
     fluxbox \
+    tmux \
     # Playwright browser dependencies
     libnss3 \
     libnspr4 \
@@ -52,24 +53,13 @@ RUN ln -s /usr/libexec/docker/cli-plugins/docker-compose /usr/bin/docker-compose
 
 # Copy DinD scripts
 COPY dind/scripts /opt/coder-scripts/
-RUN chmod +x /opt/coder-scripts/*.sh
-
-# Copy systemd service files
-COPY dind/scripts/coder-agent.service /etc/systemd/system/
-COPY dind/scripts/xvfb.service /etc/systemd/system/
-COPY dind/scripts/fluxbox.service /etc/systemd/system/
-COPY dind/scripts/x11vnc.service /etc/systemd/system/
-COPY dind/scripts/websockify-novnc.service /etc/systemd/system/
-
-# Enable all systemd services
-RUN systemctl enable coder-agent xvfb fluxbox x11vnc websockify-novnc
+RUN chmod +x /opt/coder-scripts/*
 
 # Add coder user to docker group
 RUN usermod -aG docker coder
 
-# Container runs as root for systemd PID 1. Sysbox maps uid 0 to non-root on host.
-# The Coder agent and user processes run as 'coder' via systemd services.
-# Docker daemon runs as root (standard) under systemd supervision.
+# Container runs as root for Docker daemon. Sysbox maps uid 0 to non-root on host.
+# The Coder agent runs the startup script which launches processes as needed.
 USER root
 
 LABEL org.opencontainers.image.source="https://github.com/codespacesh/templates"

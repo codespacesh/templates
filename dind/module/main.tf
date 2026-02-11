@@ -65,6 +65,12 @@ variable "claude_code_oauth_token" {
   default   = ""
 }
 
+variable "claude_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
 variable "dockerhub_username" {
   type      = string
   sensitive = true
@@ -245,9 +251,10 @@ locals {
 # =============================================================================
 
 resource "coder_agent" "main" {
-  arch = data.coder_provisioner.me.arch
-  os   = "linux"
-  dir  = "/home/coder"
+  arch                     = data.coder_provisioner.me.arch
+  os                       = "linux"
+  dir                      = "/home/coder"
+  startup_script_behavior  = "non-blocking"
 
   env = {
     CODER_MCP_CLAUDE_TASK_PROMPT   = data.coder_parameter.ai_prompt.value
@@ -283,7 +290,7 @@ resource "coder_agent" "main" {
     export CODER_USERNAME="${data.coder_workspace_owner.me.name}"
     export CODER_EMAIL="${data.coder_workspace_owner.me.email}"
 
-    # Wait for Docker (started by systemd)
+    # Wait for Docker
     echo "Waiting for Docker..."
     for i in {1..30}; do
       docker info > /dev/null 2>&1 && break
@@ -295,6 +302,14 @@ resource "coder_agent" "main" {
     if [ -n "${var.dockerhub_username}" ] && [ -n "${var.dockerhub_token}" ]; then
       echo "${var.dockerhub_token}" | docker login -u "${var.dockerhub_username}" --password-stdin
     fi
+
+    # Start VNC stack
+    export DISPLAY=:99
+    setsid Xvfb :99 -screen 0 1920x1080x24 </dev/null >/dev/null 2>&1 &
+    sleep 1
+    setsid fluxbox </dev/null >/dev/null 2>&1 &
+    setsid x11vnc -display :99 -forever -nopw -shared -rfbport 5900 </dev/null >/dev/null 2>&1 &
+    setsid websockify --web=/usr/share/novnc 6080 localhost:5900 </dev/null >/dev/null 2>&1 &
 
     cd /home/coder
 
@@ -334,7 +349,7 @@ resource "coder_agent" "main" {
     ${var.install_command}
     %{ endif }
 
-    [ -f .env.development ] && cp .env.development .env
+    [ -f .env.development ] && cp .env.development .env || true
 
     if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
       docker compose up -d
@@ -346,6 +361,14 @@ resource "coder_agent" "main" {
       bash "${var.startup_hook}"
     fi
     %{ endif }
+
+    # Start Claude in tmux session (non-blocking)
+    if [ -f /opt/coder-scripts/claude-session ]; then
+      /opt/coder-scripts/claude-session --wait-for-claude &
+    fi
+
+    # Make claude-attach available as a command
+    ln -sf /opt/coder-scripts/claude-attach /home/coder/.local/bin/claude-attach 2>/dev/null || true
 
     echo "=== ${var.project_name} workspace ready ==="
     if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
@@ -359,7 +382,7 @@ resource "coder_agent" "main" {
 # =============================================================================
 
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.0.9"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.0"
 
   namespace         = var.namespace
   workspace_id      = data.coder_workspace.me.id
@@ -368,9 +391,6 @@ module "workspace" {
   agent_token       = coder_agent.main.token
   agent_init_script = coder_agent.main.init_script
   start_count       = data.coder_workspace.me.start_count
-
-  # Systemd as PID 1: Docker/VNC managed by systemd, agent runs as coder user
-  use_systemd = true
 
   image              = var.image != "" ? var.image : "ghcr.io/codespacesh/dind:latest"
   image_pull_policy  = "Always"
@@ -382,6 +402,7 @@ module "workspace" {
 
   env_vars = merge({
     CLAUDE_CODE_OAUTH_TOKEN = var.claude_code_oauth_token
+    CLAUDE_API_KEY          = var.claude_api_key
     DOCKERHUB_USERNAME      = var.dockerhub_username
     DOCKERHUB_TOKEN         = var.dockerhub_token
     PROJECT_NAME            = var.project_name
@@ -455,6 +476,7 @@ module "claude-code" {
   workdir                 = "/home/coder/${var.project_name}"
   ai_prompt               = ""
   claude_code_oauth_token = var.claude_code_oauth_token
+  claude_api_key          = var.claude_api_key
   install_claude_code     = true
   install_agentapi        = true
   report_tasks            = true
@@ -477,7 +499,7 @@ resource "coder_metadata" "workspace" {
 
   item {
     key   = "Runtime"
-    value = "Sysbox DinD + Systemd (Kubernetes)"
+    value = "Sysbox DinD (Kubernetes)"
   }
 
   item {
