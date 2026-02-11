@@ -8,7 +8,6 @@ Reusable Coder workspace templates for different project types.
 |----------|---------|----------|
 | `base` | Ubuntu + Docker-in-Docker | Foundation for all templates |
 | `dind` | Docker-in-Docker | General-purpose workspaces with Claude Code |
-| `docker-compose` | Bun + Node.js | Projects using docker-compose |
 | `desktop` | XFCE + VNC | GUI desktop environment |
 | `openclaw` | Node.js + AI tools | AI agent development |
 
@@ -65,7 +64,6 @@ Manual build:
 ```bash
 docker build -t ghcr.io/codespacesh/base:latest -f base/Dockerfile .
 docker build -t ghcr.io/codespacesh/dind:latest -f dind/Dockerfile .
-docker build -t ghcr.io/codespacesh/docker-compose:latest -f docker-compose/Dockerfile .
 ```
 
 ## Template Structure
@@ -82,11 +80,6 @@ templates/
 │   ├── module/              # Terraform module
 │   │   └── main.tf
 │   └── scripts/             # claude-session, claude-attach, etc.
-├── docker-compose/          # Docker Compose template
-│   ├── Dockerfile           # FROM dind, adds bun + node
-│   ├── module/
-│   │   └── main.tf
-│   └── scripts/
 ├── desktop/                 # XFCE desktop environment
 │   ├── Dockerfile           # FROM dind, adds XFCE + VNC
 │   └── scripts/
@@ -101,7 +94,7 @@ templates/
 
 ## Auto-Launch from GitHub Issues
 
-Templates support auto-launching workspaces when a GitHub issue is labeled. The `dind` and `docker-compose` templates include built-in parameters for issue metadata (`issue_number`, `issue_title`, `issue_body`, `issue_branch`, `ai_prompt`).
+Templates support auto-launching workspaces when a GitHub issue is labeled. The `dind` template includes built-in parameters for issue metadata (`issue_number`, `issue_title`, `issue_body`, `issue_branch`, `ai_prompt`).
 
 When an issue gets the `launch-codespace` label, a GitHub Action creates a Coder workspace with an AI agent that starts working on the issue automatically.
 

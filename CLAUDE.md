@@ -10,7 +10,6 @@ Coder workspace templates for the Codespace.sh platform. These templates define 
 templates/
   base/              # Base image with common tools
   dind/              # Docker-in-Docker template
-  docker-compose/    # Docker Compose development template
   openclaw/          # AI agent development template
   desktop/           # XFCE desktop environment
   modules/
@@ -24,7 +23,6 @@ templates/
 ```
 base (git, common tools)
   └── dind (Docker, docker-compose)
-        ├── docker-compose (bun, dev tools)
         └── desktop (XFCE, VNC)
               └── openclaw (Node.js, OpenClaw)
 ```
@@ -77,7 +75,6 @@ Template-specific variables are documented in each template's main.tf.
 | Template | Default Image |
 |----------|---------------|
 | dind | `ghcr.io/codespacesh/dind:latest` |
-| docker-compose | `ghcr.io/codespacesh/docker-compose:latest` |
 | openclaw | `ghcr.io/codespacesh/openclaw:latest` |
 
 ## Architecture: Two-Layer System
@@ -227,5 +224,5 @@ See Coder docs on [wildcard access URL](https://coder.com/docs/admin/setup#wildc
 The `build-images.yaml` workflow:
 - On PR: Builds all images (no push) and runs verification
 - On push to main: Builds and pushes to ghcr.io/codespacesh/*
-- Images use the layer hierarchy (base → dind → docker-compose → desktop → openclaw)
+- Images use the layer hierarchy (base → dind → desktop → openclaw)
 - Script changes in `<template>/scripts/` are baked into the next image build
