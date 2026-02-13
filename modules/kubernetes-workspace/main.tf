@@ -104,7 +104,7 @@ resource "kubernetes_pod_v1" "workspace" {
 
   spec {
     # Sysbox runtime for Docker-in-Docker support
-    runtime_class_name = "sysbox-runc"
+    runtime_class_name = var.runtime_class_name
 
     # Image pull secrets for private registries
     dynamic "image_pull_secrets" {

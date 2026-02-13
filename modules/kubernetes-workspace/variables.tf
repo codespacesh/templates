@@ -129,6 +129,17 @@ variable "extra_annotations" {
 }
 
 # =============================================================================
+# RUNTIME
+# =============================================================================
+
+variable "runtime_class_name" {
+  type        = string
+  description = "Kubernetes RuntimeClass name. Default: sysbox-runc."
+  default     = "sysbox-runc"
+  nullable    = true
+}
+
+# =============================================================================
 # IMAGE PULL SECRETS
 # =============================================================================
 
