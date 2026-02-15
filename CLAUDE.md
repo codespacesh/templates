@@ -34,7 +34,7 @@ All templates use a shared Terraform module at `modules/kubernetes-workspace/`. 
 
 ```terraform
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.6"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.8"
 }
 ```
 

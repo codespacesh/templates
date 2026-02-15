@@ -390,7 +390,7 @@ resource "coder_agent" "main" {
 # =============================================================================
 
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.5"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.8"
 
   namespace         = var.namespace
   workspace_id      = data.coder_workspace.me.id
