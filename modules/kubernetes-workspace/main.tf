@@ -106,6 +106,9 @@ resource "kubernetes_pod_v1" "workspace" {
     # Sysbox runtime for Docker-in-Docker support
     runtime_class_name = var.runtime_class_name
 
+    # Workspace pods have no reason to talk to the K8s API
+    automount_service_account_token = false
+
     # Image pull secrets for private registries
     dynamic "image_pull_secrets" {
       for_each = var.image_pull_secrets
