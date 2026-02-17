@@ -222,11 +222,6 @@ resource "coder_agent" "main" {
     %{ endfor }
   EOT
 
-  metadata {
-    key          = "runtime"
-    display_name = "Runtime"
-    value        = "OpenClaw + XFCE + Docker (Kubernetes)"
-  }
 }
 
 # =============================================================================
