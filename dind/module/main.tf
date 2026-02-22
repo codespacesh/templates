@@ -350,9 +350,11 @@ resource "coder_agent" "main" {
 
     [ -f .env.development ] && cp .env.development .env || true
 
+    %{ if var.startup_hook == "" }
     if [ -f docker-compose.yml ] || [ -f docker-compose.yaml ] || [ -f compose.yml ] || [ -f compose.yaml ]; then
       docker compose up -d
     fi
+    %{ endif }
 
     %{ if var.startup_hook != "" }
     if [ -f "${var.startup_hook}" ]; then
