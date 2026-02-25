@@ -147,6 +147,27 @@ resource "kubernetes_pod_v1" "workspace" {
     # Termination grace period
     termination_grace_period_seconds = 30
 
+    # Fix /home/coder ownership on fresh PVC mount.
+    # New ext4 PVCs are root:root. Coder runs all scripts in parallel, so
+    # chown MUST happen before any container process starts.
+    # Uses workspace image (already cached) with runAsUser=0 to override
+    # the Dockerfile USER directive. No -R flag — only the top-level dir.
+    init_container {
+      name              = "fix-home-permissions"
+      image             = var.image
+      image_pull_policy = var.image_pull_policy
+      command           = ["sh", "-c", "chown 1000:1000 /home/coder"]
+
+      security_context {
+        run_as_user = 0
+      }
+
+      volume_mount {
+        name       = "home"
+        mount_path = "/home/coder"
+      }
+    }
+
     container {
       name              = "workspace"
       image             = var.image
