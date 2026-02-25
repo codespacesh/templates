@@ -268,9 +268,9 @@ resource "coder_agent" "main" {
     set -e
     echo "=== Starting ${var.project_name} workspace ==="
 
-    # Fix home directory ownership on first PVC mount (created as root)
+    # Safety net: fix home directory ownership if init container was skipped
     if [ ! -w /home/coder ]; then
-      sudo chown -R coder:coder /home/coder
+      sudo chown coder:coder /home/coder
     fi
 
     # Install Coder CLI (user-space, running as coder)
@@ -363,12 +363,6 @@ resource "coder_agent" "main" {
     fi
     %{ endif }
 
-    # Start OpenClaw gateway if setup script exists (baked into openclaw image)
-    if [ -f /opt/coder-scripts/setup-openclaw.sh ]; then
-      echo "Starting OpenClaw gateway..."
-      bash /opt/coder-scripts/setup-openclaw.sh
-    fi
-
     # Launch Claude in a codewire session (non-blocking)
     # Wait for claude CLI (installed by claude-code module)
     for i in {1..30}; do
@@ -392,7 +386,7 @@ resource "coder_agent" "main" {
 # =============================================================================
 
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.8"
+  source = "git::https://github.com/codespacesh/templates.git//modules/kubernetes-workspace?ref=v1.1.11"
 
   namespace         = var.namespace
   workspace_id      = data.coder_workspace.me.id
