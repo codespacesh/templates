@@ -19,7 +19,7 @@ Reference the module in your project's `infra/coder/main.tf`:
 
 ```hcl
 module "workspace" {
-  source = "git::https://github.com/codespacesh/templates.git//dind/module?ref=v1.1.0"
+  source = "git::https://github.com/codespacesh/templates.git//dind/module?ref=v1.1.12"
 
   project_name = "myproject"
   git_repos    = { "myproject" = "https://github.com/myorg/myproject.git" }
