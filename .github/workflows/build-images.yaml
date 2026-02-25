@@ -68,6 +68,37 @@ jobs:
           docker run --rm ghcr.io/codespacesh/openclaw:latest node --version
           docker run --rm ghcr.io/codespacesh/openclaw:latest which openclaw
 
+  build-coder-cli:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push coder-cli image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/Dockerfile.coder-cli
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/codespacesh/coder-cli:latest
+            ${{ env.REGISTRY }}/codespacesh/coder-cli:${{ github.sha }}
+          cache-from: type=gha,scope=coder-cli
+          cache-to: type=gha,mode=max,scope=coder-cli
+
   build-base:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
