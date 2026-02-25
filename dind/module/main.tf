@@ -377,7 +377,7 @@ resource "coder_agent" "main" {
     done
 
     if command -v claude &>/dev/null && [ -n "$ISSUE_NUMBER" ]; then
-      cw launch --dir "/home/coder/${var.project_name}" -- claude -p "$CODER_MCP_CLAUDE_TASK_PROMPT"
+      cw launch --dir "/home/coder/${var.project_name}" -- claude --dangerously-skip-permissions "$CODER_MCP_CLAUDE_TASK_PROMPT"
     fi
 
     echo "=== ${var.project_name} workspace ready ==="
